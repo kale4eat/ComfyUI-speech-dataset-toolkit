@@ -33,8 +33,8 @@ Install torchaudio according to your environment.
 
 ```bash
 cd custom_nodes
-git clone 
-cd 
+git clone https://github.com/kale4eat/ComfyUI-speech-dataset-toolkit.git
+cd ComfyUI-speech-dataset-toolkit
 pip3 install torchaudio --index-url https://download.pytorch.org/whl/cu121
 pip3 install -r requirements.txt
 ```
