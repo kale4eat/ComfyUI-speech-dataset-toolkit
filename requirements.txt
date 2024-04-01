@@ -1,6 +1,9 @@
 faster-whisper==1.0.1
 git+https://github.com/kale4eat/demucs@no-torch-install#egg=demucs
 
+# nue asr
+git+https://github.com/rinnakk/nue-asr
+
 # nemo-asr
 Cython
 git+https://github.com/reazon-research/ReazonSpeech#subdirectory=pkg/nemo-asr
