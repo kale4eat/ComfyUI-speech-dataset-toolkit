@@ -54,4 +54,3 @@ This repository does not contain the nodes such as numerical operations and stri
 
 - [ComfyUI-audio](https://github.com/eigenpunk/ComfyUI-audio)
 - [ComfyUI-AudioScheduler](https://github.com/a1lazydog/ComfyUI-AudioScheduler)
-- [ComfyUI-Path-Helper](https://github.com/Billius-AI/ComfyUI-Path-Helper)
