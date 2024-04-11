@@ -108,8 +108,8 @@ class NemoAsrListSegments:
     RETURN_NAMES = ("segments",)
     FUNCTION = "list"
 
-    def list(self, segment):
-        return (list(segment),)
+    def list(self, segments):
+        return (segments,)
 
 
 class NemoAsrSegmentProperty:
