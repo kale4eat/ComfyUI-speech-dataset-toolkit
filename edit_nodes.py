@@ -71,6 +71,35 @@ class TrimAudio:
         return (AudioData(view.detach().clone(), audio.sample_rate),)
 
 
+class TrimAudioBySample:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "audio": ("AUDIO",),
+                "start_sample": ("INT", {"default": 0, "min": 0, "max": 2**32}),
+                "end_sample": ("INT", {"default": 0, "min": 0, "max": 2**32}),
+            }
+        }
+
+    CATEGORY = NODE_CATEGORY
+
+    RETURN_TYPES = ("AUDIO",)
+    RETURN_NAMES = ("audio",)
+    FUNCTION = "trim_audio"
+
+    def trim_audio(
+        self,
+        audio: AudioData,
+        start_sample: int,
+        end_sample: int,
+    ):
+        if start_sample == end_sample:
+            return (audio.waveform.detach().clone(),)
+        view = audio.waveform[..., start_sample:end_sample]
+        return (AudioData(view.detach().clone(), audio.sample_rate),)
+
+
 class SilenceAudio:
     @classmethod
     def INPUT_TYPES(cls):
@@ -293,6 +322,7 @@ class ResampleAudio:
 NODE_CLASS_MAPPINGS = {
     "SDT_CutAudio": CutAudio,
     "SDT_TrimAudio": TrimAudio,
+    "SDT_TrimAudioBySample": TrimAudioBySample,
     "SDT_SilenceAudio": SilenceAudio,
     "SDT_MakeSilenceAudio": MakeSilenceAudio,
     "SDT_SplitAudio": SplitAudio,
@@ -304,6 +334,7 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SDT_CutAudio": "Cut Audio",
     "SDT_TrimAudio": "Trim Audio",
+    "SDT_TrimAudioBySample": "Trim Audio By Sample",
     "SDT_SilenceAudio": "Silence Audio",
     "SDT_MakeSilenceAudio": "Make Silence Audio",
     "SDT_SplitAudio": "Split Audio",
