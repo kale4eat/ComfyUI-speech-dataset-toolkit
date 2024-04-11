@@ -292,7 +292,7 @@ class SileroVADApply:
                 "audio": ("AUDIO",),
                 "threshold": (
                     "FLOAT",
-                    {"default": 0.5, "min": 0, "max": sys.float_info.max},
+                    {"default": 0.5, "min": 0, "max": 1.0},
                 ),
                 "min_speech_duration_ms": (
                     "INT",
@@ -355,6 +355,7 @@ class SileroVADApply:
             min_silence_duration_ms=min_silence_duration_ms,
             window_size_samples=window_size_samples,
             speech_pad_ms=speech_pad_ms,
+            return_seconds=True,
         )
 
         return (speech_timestamps,)
@@ -372,7 +373,7 @@ class SileroVADListTimestamps:
     FUNCTION = "list"
 
     def list(self, timestamps):
-        return (list[timestamps],)
+        return (timestamps,)
 
 
 class SileroVADTimestampProperty:
@@ -387,7 +388,7 @@ class SileroVADTimestampProperty:
     FUNCTION = "prop"
 
     def prop(self, timestamp):
-        return (timestamp.start, timestamp.end)
+        return (timestamp["start"], timestamp["end"])
 
 
 class SileroVADCollectChunks:
@@ -414,15 +415,13 @@ class SileroVADCollectChunks:
             else:
                 return (AudioData(torch.zeros(1, 0), audio.sample_rate),)
 
-        sr_ratio = audio.sample_rate / _SILERO_VAD_SR
-        second_timestamps = timestamps.copy()
-        for item in second_timestamps:
-            item["start"] = int(item["start"] * sr_ratio)
-            item["end"] = int(item["end"] * sr_ratio)
-
-        wave1 = _collect_chunks(second_timestamps, audio.waveform[0])
+        sample_timestamps = timestamps.copy()
+        for item in sample_timestamps:
+            item["start"] = max(0, int(item["start"] * audio.sample_rate) - 1)
+            item["end"] = max(0, int(item["end"] * audio.sample_rate) - 1)
+        wave1 = _collect_chunks(sample_timestamps, audio.waveform[0])
         if audio.is_stereo():
-            wave2 = _collect_chunks(second_timestamps, audio.waveform[1])
+            wave2 = _collect_chunks(sample_timestamps, audio.waveform[1])
             return (AudioData(torch.stack([wave1, wave2], dim=0), audio.sample_rate),)
         else:
             return (AudioData(wave1.unsqueeze(0), audio.sample_rate),)
