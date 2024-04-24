@@ -7,3 +7,7 @@ git+https://github.com/rinnakk/nue-asr
 # nemo-asr
 Cython
 git+https://github.com/reazon-research/ReazonSpeech#subdirectory=pkg/nemo-asr
+
+# kotoba-whisper
+transformers
+accelerate
