@@ -134,7 +134,7 @@ class FasterWhisperTextFromSegments:
         return (sep.join(texts),)
 
 
-class FasteWhisperListSegments:
+class FasterWhisperListSegments:
     @classmethod
     def INPUT_TYPES(cls):
         return {"required": {"segments": ("FASTER_WHISPER_SEGMENTS",)}}
@@ -168,7 +168,7 @@ NODE_CLASS_MAPPINGS = {
     "SDT_FasterWhisperLoader": FasterWhisperLoader,
     "SDT_FasterWhisperTranscribe": FasterWhisperTranscribe,
     "SDT_FasterWhisperTextFromSegments": FasterWhisperTextFromSegments,
-    "SDT_FasterWhisperListSegments": FasteWhisperListSegments,
+    "SDT_FasterWhisperListSegments": FasterWhisperListSegments,
     "SDT_FasterWhisperSegmentProperty": FasterWhisperSegmentProperty,
 }
 
@@ -177,5 +177,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "SDT_FasterWhisperTranscribe": "Transcribe by faster-whisper",
     "SDT_FasterWhisperTextFromSegments": "faster-whisper Text From Segments",
     "SDT_FasterWhisperListSegments": "faster-whisper List Segments",
-    "SDT_FasterWhisperSegmentProperty": "FasterWhisper Segment Property",
+    "SDT_FasterWhisperSegmentProperty": "faster-whisper Segment Property",
 }
