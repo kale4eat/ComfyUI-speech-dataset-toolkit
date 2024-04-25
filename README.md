@@ -45,6 +45,37 @@ If you use silero-vad, install onnxruntime according to your environment.
 pip install onnxruntime-gpu
 ```
 
+## Usage
+
+At first startup, `audio_input` and `audio_output` folder is created. 
+
+```
+ComfyUI
+├── audio_input
+├── audio_output
+├── custom_nodes
+│   └── ComfyUI-speech-dataset-toolkit
+...
+```
+
+Fisrt of all, Use a `Load Audio` node to load audio.
+
+![Load Audio node](images/load_audio_node.png)
+
+Please put the audio files you wish to process in a `audio_input` folder in advance.
+If you've added files while the app is running, please reload the page (press F5).
+
+`audio`, the data type of ComfyUI flow, consists of waveform and sample rate.
+Many nodes of this extension handle this data.
+
+For example, Demucs separate drums, bass, vocals and other stems. Each of them is audio data.
+
+![Apply demucs node](images/apply_demucs_node.png)
+
+Finally, use a `Save Audio` node to save audio. The audio is saved to `audio_output` folder.
+
+![Save Audio node](images/save_audio_node.png)
+
 ## Note
 
 There are some unsettled policies, destructive changes may be made.
