@@ -27,6 +27,7 @@ Basic audio tools using torchaudio for ComfyUI. It is assumed to assist in the s
     - [ReazonSpeech nemo-asr (Reazon Human Interaction Lab)](https://github.com/reazon-research/ReazonSpeech/tree/master/pkg/nemo-asr)
     - [SpeechMOS (UTokyo-SaruLab's MOS prediction system)](https://github.com/tarepan/SpeechMOS)
     - [kotoba-whisper (Kotoba Technologies)](https://huggingface.co/kotoba-tech/kotoba-whisper-v1.0)
+    - [BS-RoFormer](https://github.com/lucidrains/BS-RoFormer)
 
 ## Requirement
 
