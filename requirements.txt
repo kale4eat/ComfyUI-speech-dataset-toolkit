@@ -11,3 +11,7 @@ git+https://github.com/reazon-research/ReazonSpeech#subdirectory=pkg/nemo-asr
 # kotoba-whisper
 transformers
 accelerate
+
+# BS-RoFormer
+git+https://github.com/kale4eat/BS-RoFormer@mss-training#egg=BS-RoFormer
+ml_collections
