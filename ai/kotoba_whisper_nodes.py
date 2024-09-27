@@ -15,7 +15,12 @@ class KotobaWhisperLoaderShort:
     @classmethod
     def INPUT_TYPES(cls):
         return {
-            "required": {"device": (["auto", "cpu", "cuda"],)},
+            "required": {
+                "model_id": ([
+                    "kotoba-tech/kotoba-whisper-v1.0", 
+                    "kotoba-tech/kotoba-whisper-v2.0"
+                    ],),
+                "device": (["auto", "cpu", "cuda"],)},
         }
 
     CATEGORY = NODE_CATEGORY
@@ -24,13 +29,12 @@ class KotobaWhisperLoaderShort:
     RETURN_NAMES = ("model",)
     FUNCTION = "load"
 
-    def load(self, device: str):
+    def load(self, model_id: str, device: str):
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
         torch_dtype = torch.float16 if device == "cuda" else torch.float32
         model_kwargs = {"attn_implementation": "sdpa"} if device == "cuda" else {}
-        model_id = "kotoba-tech/kotoba-whisper-v1.0"
 
         # load model
         pipe = pipeline(
@@ -48,6 +52,10 @@ class KotobaWhisperLoaderLong:
     def INPUT_TYPES(cls):
         return {
             "required": {
+                "model_id": ([
+                    "kotoba-tech/kotoba-whisper-v1.0", 
+                    "kotoba-tech/kotoba-whisper-v2.0"
+                    ],),
                 "device": (["auto", "cpu", "cuda"],),
                 "chunk_length_s": ("INT", {"default": 15, "min": 1, "max": 2**10}),
                 "batch_size": ("INT", {"default": 16, "min": 1, "max": 2**10}),
@@ -62,6 +70,7 @@ class KotobaWhisperLoaderLong:
 
     def load(
         self,
+        model_id: str,
         device: str,
         chunk_length_s: int,
         batch_size: int,
@@ -71,7 +80,6 @@ class KotobaWhisperLoaderLong:
 
         torch_dtype = torch.float16 if device == "cuda" else torch.float32
         model_kwargs = {"attn_implementation": "sdpa"} if device == "cuda" else {}
-        model_id = "kotoba-tech/kotoba-whisper-v1.0"
 
         # load model
         pipe = pipeline(
