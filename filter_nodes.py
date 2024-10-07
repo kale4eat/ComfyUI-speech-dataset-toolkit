@@ -30,8 +30,9 @@ class HighpassBiquad:
     RETURN_NAMES = ("audio",)
     FUNCTION = "highpass_biquad"
 
-    def highpass_biquad(self, audio: AudioData, cutoff_freq: float, Q: float):
-        waveform = F.highpass_biquad(audio.waveform, audio.sample_rate, cutoff_freq, Q)
+    def highpass_biquad(self, audio: AudioData|dict, cutoff_freq: float, Q: float):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
+        waveform = F.highpass_biquad(audioData.waveform, audioData.sample_rate, cutoff_freq, Q)
         return (waveform,)
 
 
@@ -56,5 +57,6 @@ class LowpassBiquad:
     FUNCTION = "lowpass_biquad"
 
     def lowpass_biquad(self, audio: AudioData, cutoff_freq: float, Q: float):
-        waveform = F.lowpass_biquad(audio.waveform, audio.sample_rate, cutoff_freq, Q)
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
+        waveform = F.lowpass_biquad(audioData.waveform, audioData.sample_rate, cutoff_freq, Q)
         return (waveform,)

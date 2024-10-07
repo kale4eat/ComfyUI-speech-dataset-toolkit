@@ -87,23 +87,24 @@ class DemucsApply:
     def run(
         self,
         model: demucs.api.Separator,
-        audio: AudioData,
+        audio: dict|AudioData,
     ) -> tuple[
-        AudioData,
-        AudioData,
-        AudioData,
-        AudioData,
+        dict,
+        dict,
+        dict,
+        dict,
     ]:
         # clone to avoid in-place error when different elements internally point to the same memory location
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
         model_input_wave = convert_audio_channels(
-            audio.waveform.clone(), model.audio_channels
+            audioData.waveform.clone(), model.audio_channels
         ).clone()
-        _, separated = model.separate_tensor(model_input_wave, sr=audio.sample_rate)
+        _, separated = model.separate_tensor(model_input_wave, sr=audioData.sample_rate)
         return (
-            AudioData(separated["drums"], audio.sample_rate),
-            AudioData(separated["bass"], audio.sample_rate),
-            AudioData(separated["other"], audio.sample_rate),
-            AudioData(separated["vocals"], audio.sample_rate),
+            AudioData(separated["drums"], audioData.sample_rate).to_comfyUI_audio(),
+            AudioData(separated["bass"], audioData.sample_rate).to_comfyUI_audio(),
+            AudioData(separated["other"], audioData.sample_rate).to_comfyUI_audio(),
+            AudioData(separated["vocals"], audioData.sample_rate).to_comfyUI_audio(),
         )
 
 

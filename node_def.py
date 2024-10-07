@@ -21,8 +21,15 @@ class AudioData:
 
     sample_rate: int
 
+    @staticmethod
+    def from_comfyUI_audio(dic:dict):
+        return AudioData(dic["waveform"].squeeze(0), dic["sample_rate"])
+
     def is_stereo(self):
         return self.waveform.size(0) > 1
+    
+    def to_comfyUI_audio(self):
+        return { "waveform": self.waveform.unsqueeze(0), "sample_rate": self.sample_rate }
 
 
 @dataclass(frozen=True)

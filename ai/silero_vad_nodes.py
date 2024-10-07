@@ -327,7 +327,7 @@ class SileroVADApply:
     def run(
         self,
         model,
-        audio: AudioData,
+        audio: AudioData|dict,
         threshold: float,
         min_speech_duration_ms: int,
         max_speech_duration_s: float,
@@ -335,13 +335,14 @@ class SileroVADApply:
         window_size_samples: int,
         speech_pad_ms: int,
     ):
-        model_input_wave = audio.waveform.clone()
-        if audio.is_stereo():
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
+        model_input_wave = audioData.waveform.clone()
+        if audioData.is_stereo():
             model_input_wave = model_input_wave.mean(dim=0, keepdim=True)
 
-        if audio.sample_rate != _SILERO_VAD_SR:
+        if audioData.sample_rate != _SILERO_VAD_SR:
             transform = torchaudio.transforms.Resample(
-                orig_freq=audio.sample_rate, new_freq=_SILERO_VAD_SR
+                orig_freq=audioData.sample_rate, new_freq=_SILERO_VAD_SR
             )
             model_input_wave = transform(model_input_wave)
 
@@ -407,24 +408,26 @@ class SileroVADCollectChunks:
     RETURN_NAMES = ("audio",)
     FUNCTION = "collect_chunks"
 
-    def collect_chunks(self, timestamps, audio: AudioData):
+    def collect_chunks(self, timestamps, audio: AudioData|dict):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
+
         if len(timestamps) == 0:
             warnings.warn("VadFilter no sound")
-            if audio.is_stereo():
-                return (AudioData(torch.zeros(2, 0), audio.sample_rate),)
+            if audioData.is_stereo():
+                return (AudioData(torch.zeros(2, 0), audioData.sample_rate).to_comfyUI_audio(),)
             else:
-                return (AudioData(torch.zeros(1, 0), audio.sample_rate),)
+                return (AudioData(torch.zeros(1, 0), audioData.sample_rate).to_comfyUI_audio(),)
 
         sample_timestamps = timestamps.copy()
         for item in sample_timestamps:
-            item["start"] = max(0, int(item["start"] * audio.sample_rate) - 1)
-            item["end"] = max(0, int(item["end"] * audio.sample_rate) - 1)
-        wave1 = _collect_chunks(sample_timestamps, audio.waveform[0])
-        if audio.is_stereo():
-            wave2 = _collect_chunks(sample_timestamps, audio.waveform[1])
-            return (AudioData(torch.stack([wave1, wave2], dim=0), audio.sample_rate),)
+            item["start"] = max(0, int(item["start"] * audioData.sample_rate) - 1)
+            item["end"] = max(0, int(item["end"] * audioData.sample_rate) - 1)
+        wave1 = _collect_chunks(sample_timestamps, audioData.waveform[0])
+        if audioData.is_stereo():
+            wave2 = _collect_chunks(sample_timestamps, audioData.waveform[1])
+            return (AudioData(torch.stack([wave1, wave2], dim=0), audioData.sample_rate).to_comfyUI_audio(),)
         else:
-            return (AudioData(wave1.unsqueeze(0), audio.sample_rate),)
+            return (AudioData(wave1.unsqueeze(0), audioData.sample_rate).to_comfyUI_audio(),)
 
 
 NODE_CLASS_MAPPINGS = {
