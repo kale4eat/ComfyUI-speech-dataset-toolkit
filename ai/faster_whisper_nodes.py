@@ -92,7 +92,7 @@ class FasterWhisperTranscribe:
     ):
         audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
         model_input_wave = audioData.waveform.clone()
-        if audio.is_stereo():
+        if audioData.is_stereo():
             model_input_wave = model_input_wave.mean(dim=0, keepdim=True)
 
         WHISPER_SR = 16000
