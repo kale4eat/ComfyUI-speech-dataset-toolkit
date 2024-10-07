@@ -69,7 +69,7 @@ class LoadAudio:
     def load_audio(self, file_name):
         file = os.path.join(folder_util.get_audio_input_directory(), file_name)
         waveform, sample_rate = torchaudio.load(file)
-        return (AudioData(waveform, sample_rate), file_name)
+        return (AudioData(waveform, sample_rate).to_comfyUI_audio(), file_name)
 
 
 class LoadAudios:
@@ -100,7 +100,7 @@ class LoadAudios:
         audio_files = [os.path.join(abs_dir, f) for f in files if _is_audio_file(f)]
         items = [torchaudio.load(f) for f in audio_files]
         return (
-            [AudioData(item[0], item[1]) for item in items],
+            [AudioData(item[0], item[1]).to_comfyUI_audio() for item in items],
             [os.path.basename(f) for f in audio_files],
         )
 
@@ -129,11 +129,12 @@ class SaveAudio:
 
     def save_audio(
         self,
-        audio: AudioData,
+        audio: AudioData|dict,
         file_name: str,
         file_format: str,
         filename_prefix: str,
     ):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
         if "." not in file_name:
             file_name = file_name + _AUDIO_FILE_FORMAT_EXT_MAP[file_format]
         subfolder = os.path.dirname(os.path.normpath(filename_prefix))
@@ -143,7 +144,7 @@ class SaveAudio:
         full_output_folder = os.path.join(self.output_dir, subfolder)
         os.makedirs(full_output_folder, exist_ok=True)
         file = os.path.join(self.output_dir, file_name)
-        torchaudio.save(file, audio.waveform, audio.sample_rate, format=file_format)
+        torchaudio.save(file, audioData.waveform, audioData.sample_rate, format=file_format)
         return {}
 
 
@@ -165,10 +166,11 @@ class SaveAudioWithSequentialNumbering:
 
     def save_audio(
         self,
-        audio: AudioData,
+        audio: AudioData|dict,
         file_format: str,
         filename_prefix: str,
     ):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
         full_output_folder, filename, counter, _, _ = folder_paths.get_save_image_path(
             filename_prefix, folder_util.get_audio_output_directory()
         )
@@ -176,7 +178,7 @@ class SaveAudioWithSequentialNumbering:
             full_output_folder,
             f"{filename}_{counter:05}_{_AUDIO_FILE_FORMAT_EXT_MAP[file_format]}",
         )
-        torchaudio.save(file, audio.waveform, audio.sample_rate, format=file_format)
+        torchaudio.save(file, audioData.waveform, audioData.sample_rate, format=file_format)
         return {}
 
 
@@ -195,8 +197,9 @@ class AudioProperty:
     FUNCTION = "prop"
     OUTPUT_NODE = True
 
-    def prop(self, audio: AudioData):
-        return (audio.sample_rate,)
+    def prop(self, audio: AudioData|dict):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
+        return (audioData.sample_rate,)
 
 
 class PlayAudio:
@@ -217,10 +220,11 @@ class PlayAudio:
     FUNCTION = "play_audio"
     OUTPUT_NODE = True
 
-    def play_audio(self, audios: list[AudioData]):
+    def play_audio(self, audios: list[AudioData|dict]):
         max_counts = 50
         results = []
         for audio in audios[:max_counts]:
+            audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
             filename_prefix = "_temp_" + "".join(
                 random.choice("abcdefghijklmnopqrstupvxyz") for _ in range(5)
             )
@@ -228,11 +232,12 @@ class PlayAudio:
                 folder_paths.get_save_image_path(filename_prefix, self.output_dir)
             )
 
+            print(audioData)
             filename = f"{filename}.wav"
             torchaudio.save(
                 os.path.join(full_output_folder, filename),
-                audio.waveform,
-                audio.sample_rate,
+                audioData.waveform,
+                audioData.sample_rate,
                 format="wav",
             )
             results.append(

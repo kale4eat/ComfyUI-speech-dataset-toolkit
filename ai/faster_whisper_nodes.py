@@ -84,23 +84,24 @@ class FasterWhisperTranscribe:
     def transcribe(
         self,
         model: WhisperModel,
-        audio: AudioData,
+        audio: AudioData|dict,
         beam_size: int,
         best_of: int,
         language: str = "",
         initial_prompt: str = "",
     ):
-        model_input_wave = audio.waveform.clone()
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
+        model_input_wave = audioData.waveform.clone()
         if audio.is_stereo():
             model_input_wave = model_input_wave.mean(dim=0, keepdim=True)
 
         WHISPER_SR = 16000
-        if audio.sample_rate != WHISPER_SR:
+        if audioData.sample_rate != WHISPER_SR:
             transform = torchaudio.transforms.Resample(
-                orig_freq=audio.sample_rate, new_freq=WHISPER_SR
+                orig_freq=audioData.sample_rate, new_freq=WHISPER_SR
             )
 
-            model_input_wave = transform(audio.waveform)
+            model_input_wave = transform(audioData.waveform)
 
         segments, _ = model.transcribe(
             model_input_wave[0].numpy(),

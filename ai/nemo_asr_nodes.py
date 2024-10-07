@@ -56,9 +56,10 @@ class NemoAsrTranscribe:
     def transcribe(
         self,
         model,
-        audio: AudioData,
+        audio: AudioData|dict,
     ):
-        model_input_audio = audio_from_tensor(audio.waveform, audio.sample_rate)
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
+        model_input_audio = audio_from_tensor(audioData.waveform, audioData.sample_rate)
         result = transcribe(model, model_input_audio)
         return (
             result.text,

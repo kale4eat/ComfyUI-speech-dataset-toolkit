@@ -25,7 +25,8 @@ class Spectrogram:
     RETURN_NAMES = ("spec",)
     FUNCTION = "spectrogram"
 
-    def spectrogram(self, audio: AudioData, n_fft, win_length=None, hop_length=None):
+    def spectrogram(self, audio: AudioData|dict, n_fft, win_length=None, hop_length=None):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
         spectrogram = T.Spectrogram(
             n_fft=n_fft,
             win_length=win_length if win_length != -1 else None,
@@ -34,7 +35,7 @@ class Spectrogram:
             pad_mode="reflect",
             power=2.0,
         )
-        spec = SpectrogramData(spectrogram(audio.waveform), audio.sample_rate)
+        spec = SpectrogramData(spectrogram(audioData.waveform), audioData.sample_rate)
         return (spec,)
 
 
@@ -67,7 +68,7 @@ class GriffinLim:
             hop_length=hop_length if hop_length != -1 else None,
         )
         waveform = griffin_lim(spec.waveform)
-        return (AudioData(waveform, spec.sample_rate),)
+        return (AudioData(waveform, spec.sample_rate).to_comfyUI_audio(),)
 
 
 class MelSpectrogram:
@@ -93,14 +94,15 @@ class MelSpectrogram:
 
     def mel_spectrogram(
         self,
-        audio: AudioData,
+        audio: AudioData|dict,
         n_fft,
         n_mels,
         win_length=None,
         hop_length=None,
     ):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
         mel_spectrogram = T.MelSpectrogram(
-            sample_rate=audio.sample_rate,
+            sample_rate=audioData.sample_rate,
             n_fft=n_fft,
             win_length=win_length if win_length != -1 else None,
             hop_length=hop_length if hop_length != -1 else None,
@@ -113,8 +115,8 @@ class MelSpectrogram:
             mel_scale="htk",
         )
 
-        melspec = mel_spectrogram(audio.waveform)
-        return (SpectrogramData(melspec, audio.sample_rate),)
+        melspec = mel_spectrogram(audioData.waveform)
+        return (SpectrogramData(melspec, audioData.sample_rate),)
 
 
 class MFCC:
@@ -141,15 +143,16 @@ class MFCC:
 
     def MFCC(
         self,
-        audio: AudioData,
+        audio: AudioData|dict,
         n_mfcc,
         n_fft,
         n_mels,
         win_length=None,
         hop_length=None,
     ):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
         mfcc_transform = T.MFCC(
-            sample_rate=audio.sample_rate,
+            sample_rate=audioData.sample_rate,
             n_mfcc=n_mfcc,
             melkwargs={
                 "n_fft": n_fft,
@@ -160,7 +163,7 @@ class MFCC:
             },
         )
 
-        mfcc = mfcc_transform(audio.waveform)
+        mfcc = mfcc_transform(audioData.waveform)
         return (mfcc,)
 
 
@@ -188,15 +191,16 @@ class LFCC:
 
     def LFCC(
         self,
-        audio: AudioData,
+        audio: AudioData|dict,
         n_filter,
         n_lfcc,
         n_fft,
         win_length=None,
         hop_length=None,
     ):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
         mfcc_transform = T.LFCC(
-            sample_rate=audio.sample_rate,
+            sample_rate=audioData.sample_rate,
             n_filter=n_filter,
             n_lfcc=n_lfcc,
             speckwargs={
@@ -206,7 +210,7 @@ class LFCC:
             },
         )
 
-        lfcc = mfcc_transform(audio.waveform)
+        lfcc = mfcc_transform(audioData.waveform)
         return (lfcc,)
 
 

@@ -34,12 +34,13 @@ class PlotWaveForm:
     RETURN_NAMES = ("graph_image",)
     FUNCTION = "plot_waveform"
 
-    def plot_waveform(self, audio: AudioData, title: str):
+    def plot_waveform(self, audio: AudioData|dict, title: str):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
         # refer: https://pytorch.org/tutorials/beginner/audio_preprocessing_tutorial.html
-        waveform = audio.waveform.numpy()
+        waveform = audioData.waveform.numpy()
 
         num_channels, num_frames = waveform.shape
-        time_axis = torch.arange(0, num_frames) / audio.sample_rate
+        time_axis = torch.arange(0, num_frames) / audioData.sample_rate
 
         figure, axes = plt.subplots(num_channels, 1)
         if num_channels == 1:
@@ -80,18 +81,19 @@ class PlotSpecgram:
     RETURN_NAMES = ("graph_image",)
     FUNCTION = "plot_specgram"
 
-    def plot_specgram(self, audio: AudioData, title: str):
+    def plot_specgram(self, audio: AudioData|dict, title: str):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
         # refer: https://pytorch.org/tutorials/beginner/audio_preprocessing_tutorial.html
-        waveform = audio.waveform.numpy()
+        waveform = audioData.waveform.numpy()
 
         num_channels, num_frames = waveform.shape
-        time_axis = torch.arange(0, num_frames) / audio.sample_rate
+        time_axis = torch.arange(0, num_frames) / audioData.sample_rate
 
         figure, axes = plt.subplots(num_channels, 1)
         if num_channels == 1:
             axes = [axes]
         for c in range(num_channels):
-            axes[c].specgram(waveform[c], Fs=audio.sample_rate)
+            axes[c].specgram(waveform[c], Fs=audioData.sample_rate)
         figure.suptitle(title)
 
         # Create an in-memory buffer to store the image
@@ -205,14 +207,15 @@ class PlotPitch:
     FUNCTION = "plot_pitch"
 
     def plot_pitch(self, audio: AudioData):
-        pitch = F.detect_pitch_frequency(audio.waveform, audio.sample_rate)
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
+        pitch = F.detect_pitch_frequency(audioData.waveform, audioData.sample_rate)
         figure, axis = plt.subplots(1, 1)
         axis.set_title("Pitch Feature")
         axis.grid(True)
 
-        end_time = audio.waveform.shape[1] / audio.sample_rate
-        time_axis = torch.linspace(0, end_time, audio.waveform.shape[1])
-        axis.plot(time_axis, audio.waveform[0], linewidth=1, color="gray", alpha=0.3)
+        end_time = audioData.waveform.shape[1] / audioData.sample_rate
+        time_axis = torch.linspace(0, end_time, audioData.waveform.shape[1])
+        axis.plot(time_axis, audioData.waveform[0], linewidth=1, color="gray", alpha=0.3)
 
         axis2 = axis.twinx()
         time_axis = torch.linspace(0, end_time, pitch.shape[1])

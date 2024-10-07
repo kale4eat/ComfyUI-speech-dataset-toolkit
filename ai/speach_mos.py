@@ -53,12 +53,13 @@ class SpeechMOSScore:
     def score(
         self,
         model,
-        audio: AudioData,
+        audio: AudioData|dict,
     ):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
         device = next(model.parameters()).device
-        model_input_wave = audio.waveform.clone().to(device)
+        model_input_wave = audioData.waveform.clone().to(device)
         with torch.no_grad():
-            score = model(model_input_wave, audio.sample_rate).item()
+            score = model(model_input_wave, audioData.sample_rate).item()
         del model_input_wave
         torch.cuda.empty_cache()
         return (score,)

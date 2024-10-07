@@ -211,19 +211,19 @@ class BSRoFormerApply:
     def run(
         self,
         model,
-        audio: AudioData,
-    ) -> tuple[AudioData, AudioData]:
+        audio: AudioData|dict,
+    ) -> tuple[AudioData|dict, AudioData|dict]:
         model_, config = model
-
-        model_input_wave = audio.waveform
-        if audio.sample_rate != config.audio.sample_rate:
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
+        model_input_wave = audioData.waveform
+        if audioData.sample_rate != config.audio.sample_rate:
             transform = torchaudio.transforms.Resample(
-                orig_freq=audio.sample_rate, new_freq=config.audio.sample_rate
+                orig_freq=audioData.sample_rate, new_freq=config.audio.sample_rate
             )
 
             model_input_wave = transform(model_input_wave)
 
-        if not audio.is_stereo():
+        if not audioData.is_stereo():
             model_input_wave = torch.cat([model_input_wave, model_input_wave], dim=0)
 
         waveforms = _demix(
@@ -243,8 +243,8 @@ class BSRoFormerApply:
 
         # NOTE: Resample is not done here for extensibility
         return (
-            AudioData(waveforms["vocals"], config.audio.sample_rate),
-            AudioData(waveforms["instrumental"], config.audio.sample_rate),
+            AudioData(waveforms["vocals"], config.audio.sample_rate).to_comfyUI_audio(),
+            AudioData(waveforms["instrumental"], config.audio.sample_rate).to_comfyUI_audio(),
         )
 
 

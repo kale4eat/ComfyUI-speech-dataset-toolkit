@@ -48,13 +48,14 @@ class NueAsrTranscribe:
     RETURN_NAMES = ("text",)
     FUNCTION = "transcribe"
 
-    def transcribe(self, model, audio: AudioData):
+    def transcribe(self, model, audio: AudioData|dict):
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
         model, tokenizer = model
         NUA_ASR_SR = 16000
         model_input_wave = audio.waveform
-        if audio.sample_rate != NUA_ASR_SR:
+        if audioData.sample_rate != NUA_ASR_SR:
             transform = torchaudio.transforms.Resample(
-                orig_freq=audio.sample_rate, new_freq=NUA_ASR_SR
+                orig_freq=audioData.sample_rate, new_freq=NUA_ASR_SR
             )
 
             model_input_wave = transform(model_input_wave)

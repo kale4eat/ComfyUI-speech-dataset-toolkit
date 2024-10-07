@@ -116,21 +116,22 @@ class KotobaWhisperTranscribeShort:
     def transcribe(
         self,
         model: Pipeline,
-        audio: AudioData,
+        audio: AudioData|dict,
         prompt: str = "",
     ):
         pipe = model
-        model_input_wave = audio.waveform.clone()
-        if audio.is_stereo():
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
+        model_input_wave = audioData.waveform.clone()
+        if audioData.is_stereo():
             model_input_wave = model_input_wave.mean(dim=0, keepdim=True)
 
         WHISPER_SR = 16000
-        if audio.sample_rate != WHISPER_SR:
+        if audioData.sample_rate != WHISPER_SR:
             transform = torchaudio.transforms.Resample(
-                orig_freq=audio.sample_rate, new_freq=WHISPER_SR
+                orig_freq=audioData.sample_rate, new_freq=WHISPER_SR
             )
 
-            model_input_wave = transform(audio.waveform)
+            model_input_wave = transform(audioData.waveform)
 
         model_input_wave = model_input_wave.numpy()[0]
         generate_kwargs = {"language": "japanese", "task": "transcribe"}
@@ -173,20 +174,21 @@ class KotobaWhisperTranscribeLong:
     def transcribe(
         self,
         model: Pipeline,
-        audio: AudioData,
+        audio: AudioData|dict,
     ):
         pipe = model
-        model_input_wave = audio.waveform.clone()
+        audioData = AudioData.from_comfyUI_audio(audio) if isinstance(audio,dict) else audio
+        model_input_wave = audioData.waveform.clone()
         if audio.is_stereo():
             model_input_wave = model_input_wave.mean(dim=0, keepdim=True)
 
         WHISPER_SR = 16000
         if audio.sample_rate != WHISPER_SR:
             transform = torchaudio.transforms.Resample(
-                orig_freq=audio.sample_rate, new_freq=WHISPER_SR
+                orig_freq=audioData.sample_rate, new_freq=WHISPER_SR
             )
 
-            model_input_wave = transform(audio.waveform)
+            model_input_wave = transform(audioData.waveform)
 
         model_input_wave = model_input_wave.numpy()[0]
         generate_kwargs = {"language": "japanese", "task": "transcribe"}
