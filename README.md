@@ -79,6 +79,8 @@ Finally, use a `Save Audio` node to save audio. The audio is saved to `audio_out
 
 ## Note
 
+The ComfyUI's AUDIO type, as defined in the official implementation, is different from the one in this repository. Therefore, using these nodes together will cause an error. Adapting to the official implementation is under positive consideration (as of January 21, 2025).
+
 There are some unsettled policies, destructive changes may be made.
 
 This repository does not contain the nodes such as numerical operations and string processing.
