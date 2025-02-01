@@ -4,6 +4,9 @@
 
 Basic audio tools using torchaudio for ComfyUI. It is assumed to assist in the speech dataset creation for ASR, TTS, etc.
 
+[!WARNING]
+The AUDIO type in this repository is NOT compatible with the official implementation. Therefore, using nodes from both the official implementation and this repository together will result in an error. Adapting to the official implementation is under active consideration (as of February 1, 2025).
+
 ## Features
 
 - Basic
@@ -78,8 +81,6 @@ Finally, use a `Save Audio` node to save audio. The audio is saved to `audio_out
 ![Save Audio node](images/save_audio_node.png)
 
 ## Note
-
-The ComfyUI's AUDIO type, as defined in the official implementation, is different from the one in this repository. Therefore, using these nodes together will cause an error. Adapting to the official implementation is under positive consideration (as of January 21, 2025).
 
 There are some unsettled policies, destructive changes may be made.
 
