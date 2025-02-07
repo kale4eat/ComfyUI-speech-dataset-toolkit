@@ -9,6 +9,12 @@ from bs_roformer import BSRoformer, MelBandRoformer
 from ml_collections import ConfigDict
 
 from ..node_def import BASE_NODE_CATEGORY, AudioData
+from ..waveform_util import (
+    is_monaural,
+    is_stereo,
+    monaural_to_pseudo_stereo,
+    stereo_to_monaural,
+)
 
 NODE_CATEGORY = BASE_NODE_CATEGORY + "/ai/BS-RoFormer"
 
@@ -112,7 +118,9 @@ def _demix(config, model, mix: torch.Tensor, device):
     fade_size = C // 10
     step = int(C // N)
     border = C - step
-    batch_size = config.inference.batch_size if hasattr(config.inference, "batch_size") else 4
+    batch_size = (
+        config.inference.batch_size if hasattr(config.inference, "batch_size") else 4
+    )
 
     length_init = mix.shape[-1]
 
@@ -215,37 +223,54 @@ class BSRoFormerApply:
     ) -> tuple[AudioData, AudioData]:
         model_, config = model
 
-        model_input_wave = audio.waveform
-        if audio.sample_rate != config.audio.sample_rate:
+        model_input_wave = audio["waveform"].clone()
+        if audio["sample_rate"] != config.audio["sample_rate"]:
             transform = torchaudio.transforms.Resample(
-                orig_freq=audio.sample_rate, new_freq=config.audio.sample_rate
+                orig_freq=audio["sample_rate"], new_freq=config.audio["sample_rate"]
             )
-
             model_input_wave = transform(model_input_wave)
 
-        if not audio.is_stereo():
-            model_input_wave = torch.cat([model_input_wave, model_input_wave], dim=0)
+        # input needs to be monaural if model trained with monaural audio
+        if config.audio["num_channels"] == 1:
+            if is_stereo(model_input_wave):
+                model_input_wave = stereo_to_monaural(model_input_wave)
+        else:
+            # stereo
+            if is_monaural(model_input_wave):
+                model_input_wave = monaural_to_pseudo_stereo(model_input_wave)
 
-        waveforms = _demix(
-            config,
-            model_,
-            model_input_wave,
-            next(model_.parameters()).device,
-        )
+        batch_vocals = []
+        batch_instrumental = []
+        for b in range(model_input_wave.shape[0]):
+            waveforms = _demix(
+                config,
+                model_,
+                model_input_wave[b],
+                next(model_.parameters()).device,
+            )
 
-        instruments = config.training.instruments.copy()
-        if config.training.target_instrument is not None:
-            instruments = [config.training.target_instrument]
-        instr = "vocals" if "vocals" in instruments else instruments[0]
-        instruments.append("instrumental")
-        # Output "instrumental", which is an inverse of 'vocals' or the first stem in list if 'vocals' absent
-        waveforms["instrumental"] = model_input_wave - waveforms[instr]
+            instruments = config.training.instruments.copy()
+            if config.training.target_instrument is not None:
+                instruments = [config.training.target_instrument]
+            instr = "vocals" if "vocals" in instruments else instruments[0]
+            instruments.append("instrumental")
+            # Output "instrumental", which is an inverse of 'vocals' or the first stem in list if 'vocals' absent
+            waveforms["instrumental"] = model_input_wave[b] - waveforms[instr]
 
-        # NOTE: Resample is not done here for extensibility
-        return (
-            AudioData(waveforms["vocals"], config.audio.sample_rate),
-            AudioData(waveforms["instrumental"], config.audio.sample_rate),
-        )
+            # NOTE: Resample is not done here for extensibility
+            batch_vocals.append(waveforms["vocals"])
+            batch_instrumental.append(waveforms["instrumental"])
+
+        vocals = {
+            "waveform": torch.stack(batch_vocals, dim=0),
+            "sample_rate": config.audio["sample_rate"],
+        }
+        instrumental = {
+            "waveform": torch.stack(batch_instrumental, dim=0),
+            "sample_rate": config.audio["sample_rate"],
+        }
+
+        return (vocals, instrumental)
 
 
 NODE_CLASS_MAPPINGS = {

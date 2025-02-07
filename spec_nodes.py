@@ -34,7 +34,8 @@ class Spectrogram:
             pad_mode="reflect",
             power=2.0,
         )
-        spec = SpectrogramData(spectrogram(audio.waveform), audio.sample_rate)
+
+        spec = SpectrogramData(spectrogram(audio["waveform"]), audio["sample_rate"])
         return (spec,)
 
 
@@ -66,8 +67,10 @@ class GriffinLim:
             win_length=win_length if win_length != -1 else None,
             hop_length=hop_length if hop_length != -1 else None,
         )
+
         waveform = griffin_lim(spec.waveform)
-        return (AudioData(waveform, spec.sample_rate),)
+        audio = {"waveform": waveform, "sample_rate": spec.sample_rate}
+        return (audio,)
 
 
 class MelSpectrogram:
@@ -100,7 +103,7 @@ class MelSpectrogram:
         hop_length=None,
     ):
         mel_spectrogram = T.MelSpectrogram(
-            sample_rate=audio.sample_rate,
+            sample_rate=audio["sample_rate"],
             n_fft=n_fft,
             win_length=win_length if win_length != -1 else None,
             hop_length=hop_length if hop_length != -1 else None,
@@ -113,8 +116,8 @@ class MelSpectrogram:
             mel_scale="htk",
         )
 
-        melspec = mel_spectrogram(audio.waveform)
-        return (SpectrogramData(melspec, audio.sample_rate),)
+        melspec = mel_spectrogram(audio["waveform"])
+        return (SpectrogramData(melspec, audio["sample_rate"]),)
 
 
 class MFCC:
@@ -149,7 +152,7 @@ class MFCC:
         hop_length=None,
     ):
         mfcc_transform = T.MFCC(
-            sample_rate=audio.sample_rate,
+            sample_rate=audio["sample_rate"],
             n_mfcc=n_mfcc,
             melkwargs={
                 "n_fft": n_fft,
@@ -160,8 +163,8 @@ class MFCC:
             },
         )
 
-        mfcc = mfcc_transform(audio.waveform)
-        return (mfcc,)
+        mfcc = mfcc_transform(audio["waveform"])
+        return (SpectrogramData(mfcc, audio["sample_rate"]),)
 
 
 class LFCC:
@@ -184,7 +187,7 @@ class LFCC:
 
     RETURN_TYPES = ("SPEC",)
     RETURN_NAMES = ("spec",)
-    FUNCTION = "MFCC"
+    FUNCTION = "LFCC"
 
     def LFCC(
         self,
@@ -196,7 +199,7 @@ class LFCC:
         hop_length=None,
     ):
         mfcc_transform = T.LFCC(
-            sample_rate=audio.sample_rate,
+            sample_rate=audio["sample_rate"],
             n_filter=n_filter,
             n_lfcc=n_lfcc,
             speckwargs={
@@ -206,8 +209,8 @@ class LFCC:
             },
         )
 
-        lfcc = mfcc_transform(audio.waveform)
-        return (lfcc,)
+        lfcc = mfcc_transform(audio["waveform"])
+        return (SpectrogramData(lfcc, audio["sample_rate"]),)
 
 
 NODE_CLASS_MAPPINGS = {

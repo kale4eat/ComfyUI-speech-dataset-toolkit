@@ -3,11 +3,11 @@ import os
 import folder_paths
 
 _audio_input_directory = os.path.join(
-    os.path.dirname(os.path.realpath(folder_paths.__file__)), "audio_input"
+    folder_paths.get_input_directory(), "audio_input"
 )
 
 _audio_output_directory = os.path.join(
-    os.path.dirname(os.path.realpath(folder_paths.__file__)), "audio_output"
+    folder_paths.get_output_directory(), "audio_output"
 )
 
 
@@ -21,6 +21,6 @@ def get_audio_output_directory():
     return _audio_output_directory
 
 
-def initiarize():
+def initialize():
     os.makedirs(get_audio_input_directory(), exist_ok=True)
     os.makedirs(get_audio_output_directory(), exist_ok=True)

@@ -96,14 +96,47 @@ class DemucsApply:
     ]:
         # clone to avoid in-place error when different elements internally point to the same memory location
         model_input_wave = convert_audio_channels(
-            audio.waveform.clone(), model.audio_channels
+            audio["waveform"].clone(), model.audio_channels
         ).clone()
-        _, separated = model.separate_tensor(model_input_wave, sr=audio.sample_rate)
+
+        num_batch, _, _ = audio["waveform"].shape
+
+        list_drums = []
+        list_bass = []
+        list_other = []
+        list_vocals = []
+
+        for b in range(num_batch):
+            _, separated = model.separate_tensor(
+                model_input_wave[b], sr=audio["sample_rate"]
+            )
+            list_drums.append(separated["drums"])
+            list_bass.append(separated["bass"])
+            list_other.append(separated["other"])
+            list_vocals.append(separated["vocals"])
+
+        batch_drums = {
+            "waveform": torch.stack(list_drums, dim=0),
+            "sample_rate": audio["sample_rate"],
+        }
+        batch_bass = {
+            "waveform": torch.stack(list_bass, dim=0),
+            "sample_rate": audio["sample_rate"],
+        }
+        batch_other = {
+            "waveform": torch.stack(list_other, dim=0),
+            "sample_rate": audio["sample_rate"],
+        }
+        batch_vocals = {
+            "waveform": torch.stack(list_vocals, dim=0),
+            "sample_rate": audio["sample_rate"],
+        }
+
         return (
-            AudioData(separated["drums"], audio.sample_rate),
-            AudioData(separated["bass"], audio.sample_rate),
-            AudioData(separated["other"], audio.sample_rate),
-            AudioData(separated["vocals"], audio.sample_rate),
+            batch_drums,
+            batch_bass,
+            batch_other,
+            batch_vocals,
         )
 
 

@@ -1,9 +1,11 @@
 # SpeechMOS
 # https://github.com/tarepan/SpeechMOS
 
+
 import torch
 
 from ..node_def import BASE_NODE_CATEGORY, AudioData
+from ..waveform_util import is_stereo, stereo_to_monaural
 
 NODE_CATEGORY = BASE_NODE_CATEGORY + "/ai/SpeechMOS"
 
@@ -48,6 +50,7 @@ class SpeechMOSScore:
 
     RETURN_TYPES = ("FLOAT",)
     RETURN_NAMES = ("score",)
+    OUTPUT_IS_LIST = (True, )
     FUNCTION = "score"
 
     def score(
@@ -55,13 +58,23 @@ class SpeechMOSScore:
         model,
         audio: AudioData,
     ):
+        num_batch, _, _ = audio["waveform"].shape
+        model_input_wave = audio["waveform"].clone()
+        # input needs to be monaural
+        if is_stereo(model_input_wave):
+            model_input_wave = stereo_to_monaural(model_input_wave)
+
         device = next(model.parameters()).device
-        model_input_wave = audio.waveform.clone().to(device)
+        scores = []
         with torch.no_grad():
-            score = model(model_input_wave, audio.sample_rate).item()
-        del model_input_wave
-        torch.cuda.empty_cache()
-        return (score,)
+            for b in range(num_batch):
+                wave = model_input_wave[b].clone().to(device)
+                score = model(wave, audio["sample_rate"]).item()
+                scores.append(score)
+                del wave
+                torch.cuda.empty_cache()
+
+        return (scores,)
 
 
 NODE_CLASS_MAPPINGS = {
