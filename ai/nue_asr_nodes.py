@@ -3,6 +3,7 @@ import torch
 import torchaudio
 
 from ..node_def import BASE_NODE_CATEGORY, AudioData
+from ..waveform_util import is_stereo, stereo_to_monaural
 
 NODE_CATEGORY = BASE_NODE_CATEGORY + "/ai/nue-asr"
 
@@ -43,7 +44,7 @@ class NueAsrTranscribe:
         }
 
     CATEGORY = NODE_CATEGORY
-
+    OUTPUT_IS_LIST = (True,)
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("text",)
     FUNCTION = "transcribe"
@@ -51,16 +52,24 @@ class NueAsrTranscribe:
     def transcribe(self, model, audio: AudioData):
         model, tokenizer = model
         NUA_ASR_SR = 16000
-        model_input_wave = audio.waveform
-        if audio.sample_rate != NUA_ASR_SR:
-            transform = torchaudio.transforms.Resample(
-                orig_freq=audio.sample_rate, new_freq=NUA_ASR_SR
-            )
+        model_input_wave = audio["waveform"].clone()
+        # input needs to be monaural
+        if is_stereo(model_input_wave):
+            model_input_wave = stereo_to_monaural(model_input_wave)
 
+        if audio["sample_rate"] != NUA_ASR_SR:
+            transform = torchaudio.transforms.Resample(
+                orig_freq=audio["sample_rate"], new_freq=NUA_ASR_SR
+            )
             model_input_wave = transform(model_input_wave)
 
-        result = nue_asr.transcribe(model, tokenizer, model_input_wave)
-        return (result.text,)
+        batch_text = []
+
+        for b in range(model_input_wave.shape[0]):
+            result = nue_asr.transcribe(model, tokenizer, model_input_wave[b])
+            batch_text.append(result.text)
+
+        return (batch_text,)
 
 
 NODE_CLASS_MAPPINGS = {

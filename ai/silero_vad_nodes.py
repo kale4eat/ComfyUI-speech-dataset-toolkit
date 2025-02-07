@@ -1,6 +1,7 @@
 # silero-vad
 # https://github.com/snakers4/silero-vad
 
+import copy
 import sys
 import warnings
 from typing import Callable, Optional
@@ -9,6 +10,7 @@ import torch
 import torchaudio
 
 from ..node_def import BASE_NODE_CATEGORY, AudioData
+from ..waveform_util import is_stereo, stereo_to_monaural
 
 NODE_CATEGORY = BASE_NODE_CATEGORY + "/ai/SileroVAD"
 
@@ -319,7 +321,7 @@ class SileroVADApply:
         }
 
     CATEGORY = NODE_CATEGORY
-
+    OUTPUT_IS_LIST = (True,)
     RETURN_TYPES = ("SILERO_VAD_TIMESTAMPS",)
     RETURN_NAMES = ("timestamps",)
     FUNCTION = "run"
@@ -335,30 +337,36 @@ class SileroVADApply:
         window_size_samples: int,
         speech_pad_ms: int,
     ):
-        model_input_wave = audio.waveform.clone()
-        if audio.is_stereo():
-            model_input_wave = model_input_wave.mean(dim=0, keepdim=True)
+        model_input_wave = audio["waveform"].clone()
+        # input needs to be monaural
+        if is_stereo(model_input_wave):
+            model_input_wave = stereo_to_monaural(model_input_wave)
 
-        if audio.sample_rate != _SILERO_VAD_SR:
+        if audio["sample_rate"] != _SILERO_VAD_SR:
             transform = torchaudio.transforms.Resample(
-                orig_freq=audio.sample_rate, new_freq=_SILERO_VAD_SR
+                orig_freq=audio["sample_rate"], new_freq=_SILERO_VAD_SR
             )
             model_input_wave = transform(model_input_wave)
 
-        speech_timestamps = _get_speech_timestamps(
-            model_input_wave.squeeze(0),
-            model,
-            sampling_rate=_SILERO_VAD_SR,
-            threshold=threshold,
-            min_speech_duration_ms=min_speech_duration_ms,
-            max_speech_duration_s=max_speech_duration_s,
-            min_silence_duration_ms=min_silence_duration_ms,
-            window_size_samples=window_size_samples,
-            speech_pad_ms=speech_pad_ms,
-            return_seconds=True,
-        )
+        batch_speech_timestamps = []
 
-        return (speech_timestamps,)
+        for b in range(model_input_wave.shape[0]):
+            speech_timestamps = _get_speech_timestamps(
+                model_input_wave[b].squeeze(0),
+                model,
+                sampling_rate=_SILERO_VAD_SR,
+                threshold=threshold,
+                min_speech_duration_ms=min_speech_duration_ms,
+                max_speech_duration_s=max_speech_duration_s,
+                min_silence_duration_ms=min_silence_duration_ms,
+                window_size_samples=window_size_samples,
+                speech_pad_ms=speech_pad_ms,
+                return_seconds=True,
+            )
+
+            batch_speech_timestamps.append(speech_timestamps)
+
+        return (batch_speech_timestamps,)
 
 
 class SileroVADListTimestamps:
@@ -367,13 +375,18 @@ class SileroVADListTimestamps:
         return {"required": {"timestamps": ("SILERO_VAD_TIMESTAMPS",)}}
 
     CATEGORY = NODE_CATEGORY
+    INPUT_IS_LIST = (True,)
     OUTPUT_IS_LIST = (True,)
     RETURN_TYPES = ("SILERO_VAD_TIMESTAMP",)
     RETURN_NAMES = ("timestamp",)
     FUNCTION = "list"
 
     def list(self, timestamps):
-        return (timestamps,)
+        if isinstance(timestamps, list):
+            if len(timestamps) > 1 and isinstance(timestamps[0], list):
+                warnings.warn("timestamps after batch size 2 are not processed.")
+
+        return (list(timestamps[0]),)
 
 
 class SileroVADTimestampProperty:
@@ -408,23 +421,38 @@ class SileroVADCollectChunks:
     FUNCTION = "collect_chunks"
 
     def collect_chunks(self, timestamps, audio: AudioData):
+        num_batch, num_channels, _ = audio["waveform"].shape
+
+        if num_batch > 1:
+            warnings.warn("SileroVADCollectChunks expects audio with batch size 1.")
+
         if len(timestamps) == 0:
             warnings.warn("VadFilter no sound")
-            if audio.is_stereo():
-                return (AudioData(torch.zeros(2, 0), audio.sample_rate),)
-            else:
-                return (AudioData(torch.zeros(1, 0), audio.sample_rate),)
+            audio = {
+                "waveform": torch.zeros((1, num_channels, 0)),
+                "sample_rate": audio["sample_rate"],
+            }
+            return (audio,)
 
-        sample_timestamps = timestamps.copy()
+        # second to sample
+        sample_timestamps = copy.deepcopy(timestamps)
         for item in sample_timestamps:
-            item["start"] = max(0, int(item["start"] * audio.sample_rate) - 1)
-            item["end"] = max(0, int(item["end"] * audio.sample_rate) - 1)
-        wave1 = _collect_chunks(sample_timestamps, audio.waveform[0])
-        if audio.is_stereo():
-            wave2 = _collect_chunks(sample_timestamps, audio.waveform[1])
-            return (AudioData(torch.stack([wave1, wave2], dim=0), audio.sample_rate),)
+            item["start"] = max(0, int(item["start"] * audio["sample_rate"]) - 1)
+            item["end"] = max(0, int(item["end"] * audio["sample_rate"]) - 1)
+
+        wave1 = _collect_chunks(sample_timestamps, audio["waveform"][0][0])
+        if num_channels == 2:
+            wave2 = _collect_chunks(sample_timestamps, audio["waveform"][0][1])
+            audio = {
+                "waveform": torch.stack([wave1, wave2], dim=0).unsqueeze(0),
+                "sample_rate": audio["sample_rate"],
+            }
         else:
-            return (AudioData(wave1.unsqueeze(0), audio.sample_rate),)
+            audio = {
+                "waveform": wave1.unsqueeze(0).unsqueeze(0),
+                "sample_rate": audio["sample_rate"],
+            }
+        return (audio,)
 
 
 NODE_CLASS_MAPPINGS = {

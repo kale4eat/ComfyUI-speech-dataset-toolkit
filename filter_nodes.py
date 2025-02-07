@@ -14,11 +14,11 @@ class HighpassBiquad:
             "required": {
                 "audio": ("AUDIO",),
                 "cutoff_freq": (
-                    "FLAOT",
+                    "FLOAT",
                     {"default": 0, "min": 0, "max": sys.float_info.max},
                 ),
                 "Q": (
-                    "FLAOT",
+                    "FLOAT",
                     {"default": 0.707, "min": 0, "max": sys.float_info.max},
                 ),
             },
@@ -31,8 +31,11 @@ class HighpassBiquad:
     FUNCTION = "highpass_biquad"
 
     def highpass_biquad(self, audio: AudioData, cutoff_freq: float, Q: float):
-        waveform = F.highpass_biquad(audio.waveform, audio.sample_rate, cutoff_freq, Q)
-        return (waveform,)
+        waveform = F.highpass_biquad(
+            audio["waveform"], audio["sample_rate"], cutoff_freq, Q
+        )
+        new_audio = {"waveform": waveform, "sample_rate": audio["sample_rate"]}
+        return (new_audio,)
 
 
 class LowpassBiquad:
@@ -42,10 +45,10 @@ class LowpassBiquad:
             "required": {
                 "audio": ("AUDIO",),
                 "cutoff_freq": (
-                    "FLAOT",
+                    "FLOAT",
                     {"default": 0, "min": 0, "max": sys.float_info.max},
                 ),
-                "Q": ("FLAOT", {"default": 0.707, "min": 0, "max": sys.float_info.max}),
+                "Q": ("FLOAT", {"default": 0.707, "min": 0, "max": sys.float_info.max}),
             },
         }
 
@@ -56,5 +59,17 @@ class LowpassBiquad:
     FUNCTION = "lowpass_biquad"
 
     def lowpass_biquad(self, audio: AudioData, cutoff_freq: float, Q: float):
-        waveform = F.lowpass_biquad(audio.waveform, audio.sample_rate, cutoff_freq, Q)
-        return (waveform,)
+        waveform = F.lowpass_biquad(audio["waveform"], audio["sample_rate"], cutoff_freq, Q)
+        new_audio = {"waveform": waveform, "sample_rate": audio["sample_rate"]}
+        return (new_audio,)
+
+
+NODE_CLASS_MAPPINGS = {
+    "SDT_HighpassBiquad": HighpassBiquad,
+    "SDT_LowpassBiquad": LowpassBiquad,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "SDT_HighpassBiquad": "Highpass Biquad",
+    "SDT_LowpassBiquad": "Lowpass Biquad",
+}

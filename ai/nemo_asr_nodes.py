@@ -39,7 +39,7 @@ class NemoAsrTranscribe:
         }
 
     CATEGORY = NODE_CATEGORY
-
+    OUTPUT_IS_LIST = (True, True, True)
     RETURN_TYPES = (
         "STRING",
         "NEMO_ASR_SUBWORDS",
@@ -58,89 +58,29 @@ class NemoAsrTranscribe:
         model,
         audio: AudioData,
     ):
-        model_input_audio = audio_from_tensor(audio.waveform, audio.sample_rate)
-        result = transcribe(model, model_input_audio)
+
+        batch_text = []
+        batch_subwords = []
+        batch_segments = []
+
+        for b in range(audio["waveform"].shape[0]):
+            model_input_audio = audio_from_tensor(audio["waveform"][b], audio["sample_rate"])
+            result = transcribe(model, model_input_audio)
+            batch_text.append(result.text)
+            batch_subwords.append(result.subwords)
+            batch_segments.append(result.segments)
+
         return (
-            result.text,
-            result.subwords,
-            result.segments,
+            batch_text, batch_subwords, batch_segments
         )
-
-
-class NemoAsrListSubwords:
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {"required": {"subwords": ("NEMO_ASR_SUBWORDS",)}}
-
-    CATEGORY = NODE_CATEGORY
-    OUTPUT_IS_LIST = (True,)
-    RETURN_TYPES = ("NEMO_ASR_SUBWORD",)
-    RETURN_NAMES = ("subwords",)
-    FUNCTION = "list"
-
-    def list(self, segment):
-        return (list(segment),)
-
-
-class NemoAsrSubwordProperty:
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {"required": {"subword": ("NEMO_ASR_SUBWORD",)}}
-
-    CATEGORY = NODE_CATEGORY
-
-    RETURN_TYPES = ("FLOAT", "INT", "STRING")
-    RETURN_NAMES = ("seconds", "token_id", "token")
-    FUNCTION = "prop"
-
-    def prop(self, subword):
-        return (subword.seconds, subword.token_id, subword.token)
-
-
-class NemoAsrListSegments:
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {"required": {"segments": ("NEMO_ASR_SEGMENTS",)}}
-
-    CATEGORY = NODE_CATEGORY
-    OUTPUT_IS_LIST = (True,)
-    RETURN_TYPES = ("NEMO_ASR_SEGMENT",)
-    RETURN_NAMES = ("segments",)
-    FUNCTION = "list"
-
-    def list(self, segments):
-        return (segments,)
-
-
-class NemoAsrSegmentProperty:
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {"required": {"segment": ("NEMO_ASR_SEGMENT",)}}
-
-    CATEGORY = NODE_CATEGORY
-
-    RETURN_TYPES = ("FLOAT", "FLOAT", "STRING")
-    RETURN_NAMES = ("start", "end", "text")
-    FUNCTION = "prop"
-
-    def prop(self, segment):
-        return (segment.start_seconds, segment.end_seconds, segment.text)
 
 
 NODE_CLASS_MAPPINGS = {
     "SDT_NemoAsrLoader": NemoAsrLoader,
     "SDT_NemoAsrTranscribe": NemoAsrTranscribe,
-    "SDT_NemoAsrListSubwords": NemoAsrListSubwords,
-    "SDT_NemoAsrSubwordProperty": NemoAsrSubwordProperty,
-    "SDT_NemoAsrListSegments": NemoAsrListSegments,
-    "SDT_NemoAsrSegmentProperty": NemoAsrSegmentProperty,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SDT_NemoAsrLoader": "Load nemo-asr",
     "SDT_NemoAsrTranscribe": "Transcribe by nemo-asr",
-    "SDT_NemoAsrListSubwords": "nemo-asr List Subwords",
-    "SDT_NemoAsrSubwordProperty": "nemo-asr Subword Property",
-    "SDT_NemoAsrListSegments": "nemo-asr List Segments",
-    "SDT_NemoAsrSegmentProperty": "nemo-asr Segment Property",
 }

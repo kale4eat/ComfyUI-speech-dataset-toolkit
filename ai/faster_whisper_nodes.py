@@ -1,10 +1,13 @@
 # faster-whisper
 # https://github.com/SYSTRAN/faster-whisper
 
+import warnings
+
 import torchaudio
 from faster_whisper import WhisperModel
 
 from ..node_def import BASE_NODE_CATEGORY, AudioData
+from ..waveform_util import is_stereo, stereo_to_monaural
 
 NODE_CATEGORY = BASE_NODE_CATEGORY + "/ai/faster-whisper"
 
@@ -79,6 +82,7 @@ class FasterWhisperTranscribe:
 
     RETURN_TYPES = ("FASTER_WHISPER_SEGMENTS",)
     RETURN_NAMES = ("segments",)
+    OUTPUT_IS_LIST = (True,)
     FUNCTION = "transcribe"
 
     def transcribe(
@@ -90,27 +94,31 @@ class FasterWhisperTranscribe:
         language: str = "",
         initial_prompt: str = "",
     ):
-        model_input_wave = audio.waveform.clone()
-        if audio.is_stereo():
-            model_input_wave = model_input_wave.mean(dim=0, keepdim=True)
+        model_input_wave = audio["waveform"].clone()
+        # input needs to be monaural
+        if is_stereo(model_input_wave):
+            model_input_wave = stereo_to_monaural(model_input_wave)
 
         WHISPER_SR = 16000
-        if audio.sample_rate != WHISPER_SR:
+        if audio["sample_rate"] != WHISPER_SR:
             transform = torchaudio.transforms.Resample(
-                orig_freq=audio.sample_rate, new_freq=WHISPER_SR
+                orig_freq=audio["sample_rate"], new_freq=WHISPER_SR
+            )
+            model_input_wave = transform(model_input_wave)
+
+        batch_segments = []
+        for b in range(model_input_wave.shape[0]):
+            segments, _ = model.transcribe(
+                model_input_wave[b][0].numpy(),
+                beam_size=beam_size,
+                best_of=best_of,
+                language=language if language != "" else None,
+                initial_prompt=initial_prompt if initial_prompt != "" else None,
             )
 
-            model_input_wave = transform(audio.waveform)
+            batch_segments.append(list(segments))
 
-        segments, _ = model.transcribe(
-            model_input_wave[0].numpy(),
-            beam_size=beam_size,
-            best_of=best_of,
-            language=language if language != "" else None,
-            initial_prompt=initial_prompt if initial_prompt != "" else None,
-        )
-
-        return (list(segments),)
+        return (batch_segments,)
 
 
 class FasterWhisperTextFromSegments:
@@ -130,7 +138,7 @@ class FasterWhisperTextFromSegments:
     FUNCTION = "text_from_segments"
 
     def text_from_segments(self, segments, sep: str):
-        texts = [segment.text for segment in segments]
+        texts = [s.text for s in segments]
         return (sep.join(texts),)
 
 
@@ -140,13 +148,18 @@ class FasterWhisperListSegments:
         return {"required": {"segments": ("FASTER_WHISPER_SEGMENTS",)}}
 
     CATEGORY = NODE_CATEGORY
+    INPUT_IS_LIST = (True,)
     OUTPUT_IS_LIST = (True,)
     RETURN_TYPES = ("FASTER_WHISPER_SEGMENT",)
     RETURN_NAMES = ("segments",)
     FUNCTION = "list"
 
     def list(self, segments):
-        return (list(segments),)
+        if isinstance(segments, list):
+            if len(segments) > 1 and isinstance(segments[0], list):
+                warnings.warn("segments after batch size 2 are not processed.")
+
+        return (list(segments[0]),)
 
 
 class FasterWhisperSegmentProperty:
@@ -155,7 +168,6 @@ class FasterWhisperSegmentProperty:
         return {"required": {"segment": ("FASTER_WHISPER_SEGMENT",)}}
 
     CATEGORY = NODE_CATEGORY
-
     RETURN_TYPES = ("FLOAT", "FLOAT", "STRING")
     RETURN_NAMES = ("start", "end", "text")
     FUNCTION = "prop"

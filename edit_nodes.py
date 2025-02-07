@@ -1,4 +1,5 @@
 import sys
+import warnings
 
 import torch
 import torchaudio
@@ -31,13 +32,19 @@ class CutAudio:
         start_second: float,
         end_second: float,
     ):
-        start_sample = max(0, int(start_second * audio.sample_rate) - 1)
-        end_sample = max(0, int(end_second * audio.sample_rate) - 1)
+        start_sample = max(0, int(start_second * audio["sample_rate"]) - 1)
+        end_sample = max(0, int(end_second * audio["sample_rate"]) - 1)
         if start_sample == end_sample:
-            return (audio.waveform.detach().clone(),)
-        view1 = audio.waveform[..., :start_sample]
-        view2 = audio.waveform[..., end_sample:]
-        return AudioData(torch.concat([view1, view2], dim=-1), audio.sample_rate)
+            warnings.warn("start_sample and end_sample have the same value.")
+            return (audio,)
+
+        view1 = audio["waveform"][..., :start_sample]
+        view2 = audio["waveform"][..., end_sample:]
+        new_audio = {
+            "waveform": torch.concat([view1, view2], dim=-1),
+            "sample_rate": audio["sample_rate"],
+        }
+        return (new_audio,)
 
 
 class TrimAudio:
@@ -63,12 +70,18 @@ class TrimAudio:
         start_second: float,
         end_second: float,
     ):
-        start_sample = max(0, int(start_second * audio.sample_rate) - 1)
-        end_sample = max(0, int(end_second * audio.sample_rate) - 1)
+        start_sample = max(0, int(start_second * audio["sample_rate"]) - 1)
+        end_sample = max(0, int(end_second * audio["sample_rate"]) - 1)
         if start_sample == end_sample:
-            return (audio.waveform.detach().clone(),)
-        view = audio.waveform[..., start_sample:end_sample]
-        return (AudioData(view.detach().clone(), audio.sample_rate),)
+            warnings.warn("start_sample and end_sample have the same value.")
+            return (audio,)
+
+        view = audio["waveform"][..., start_sample:end_sample]
+        new_audio = {
+            "waveform": view.detach().clone(),
+            "sample_rate": audio["sample_rate"],
+        }
+        return (new_audio,)
 
 
 class TrimAudioBySample:
@@ -95,9 +108,15 @@ class TrimAudioBySample:
         end_sample: int,
     ):
         if start_sample == end_sample:
-            return (audio.waveform.detach().clone(),)
-        view = audio.waveform[..., start_sample:end_sample]
-        return (AudioData(view.detach().clone(), audio.sample_rate),)
+            warnings.warn("start_sample and end_sample have the same value.")
+            return (audio,)
+
+        view = audio["waveform"][..., start_sample:end_sample]
+        new_audio = {
+            "waveform": view.detach().clone(),
+            "sample_rate": audio["sample_rate"],
+        }
+        return (new_audio,)
 
 
 class SilenceAudio:
@@ -123,13 +142,16 @@ class SilenceAudio:
         start_second: float,
         end_second: float,
     ):
-        start_sample = max(0, int(start_second * audio.sample_rate) - 1)
-        end_sample = max(0, int(end_second * audio.sample_rate) - 1)
+        start_sample = max(0, int(start_second * audio["sample_rate"]) - 1)
+        end_sample = max(0, int(end_second * audio["sample_rate"]) - 1)
         if start_sample == end_sample:
-            return (audio.waveform.detach().clone(),)
-        copy_waveform = audio.waveform.detach().clone()
-        copy_waveform[:, start_sample:end_sample] = 0
-        return (AudioData(copy_waveform, audio.sample_rate),)
+            warnings.warn("start_sample and end_sample have the same value.")
+            return (audio,)
+
+        copy_waveform = audio["waveform"].detach().clone()
+        copy_waveform[..., start_sample:end_sample] = 0
+        new_audio = {"waveform": copy_waveform, "sample_rate": audio["sample_rate"]}
+        return (new_audio,)
 
 
 class MakeSilenceAudio:
@@ -139,7 +161,8 @@ class MakeSilenceAudio:
             "required": {
                 "second": ("FLOAT", {"default": 0.0, "step": 0.001}),
                 "sample_rate": ("INT", {"default": 16000, "min": 1}),
-                "channel": (["monoral", "stereo"],),
+                "channel": (["monaural", "stereo"],),
+                "batch_size": ("INT", {"default": 1, "min": 1, "max": 4096}),
             }
         }
 
@@ -154,11 +177,13 @@ class MakeSilenceAudio:
         second: float,
         sample_rate: int,
         channel: str,
+        batch_size: int,
     ):
-        ch_dim = 1 if channel == "monoral" else 2
+        ch_dim = 1 if channel == "monaural" else 2
         samples = int(second * sample_rate)
-        wave = torch.zeros((ch_dim, samples))
-        return (AudioData(wave, sample_rate),)
+        wave = torch.zeros((batch_size, ch_dim, samples))
+        new_audio = {"waveform": wave, "sample_rate": sample_rate}
+        return (new_audio,)
 
 
 class SplitAudio:
@@ -173,53 +198,23 @@ class SplitAudio:
 
     CATEGORY = NODE_CATEGORY
 
-    RETURN_TYPES = ("AUDIO",)
-    RETURN_NAMES = ("audio",)
+    RETURN_TYPES = ("AUDIO", "AUDIO")
+    RETURN_NAMES = ("audio1", "audio2")
     FUNCTION = "split_audio"
 
     def split_audio(self, audio: AudioData, second: float):
-        sample = max(0, int(second * audio.sample_rate) - 1)
-        view1 = audio.waveform[..., :sample]
-        view2 = audio.waveform[..., sample:]
-        audio1 = AudioData(view1.detach().clone(), audio.sample_rate)
-        audio2 = AudioData(view2.detach().clone(), audio.sample_rate)
-        return (audio1, audio2)
-
-
-class ConcatAudio:
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "audio1": ("AUDIO",),
-                "audio2": ("AUDIO",),
-                "silent_interval": ("FLOAT", {"default": 0.0, "step": 0.001}),
-            }
+        sample = max(0, int(second * audio["sample_rate"]) - 1)
+        view1 = audio["waveform"][..., :sample]
+        view2 = audio["waveform"][..., sample:]
+        audio1 = {
+            "waveform": view1.detach().clone(),
+            "sample_rate": audio["sample_rate"],
         }
-
-    CATEGORY = NODE_CATEGORY
-
-    RETURN_TYPES = ("AUDIO",)
-    RETURN_NAMES = ("audio",)
-    FUNCTION = "join_audio"
-
-    def join_audio(self, audio1: AudioData, audio2: AudioData, silent_interval: float):
-        if audio1.sample_rate != audio2.sample_rate:
-            raise ValueError(
-                f"sample_rate is different\naudio1: {audio1.sample_rate}\naudio2: {audio2.sample_rate}"
-            )
-        if not audio1.is_stereo() == audio2.is_stereo():
-            audio1_ch = "stereo" if audio1.is_stereo() else "monoral"
-            audio2_ch = "stereo" if audio1.is_stereo() else "monoral"
-            raise ValueError(f"naudio1 is {audio1_ch} but audio2 is {audio2_ch}")
-
-        samples = int(silent_interval * audio1.sample_rate)
-        ch_dim = 2 if audio1.is_stereo() else 1
-        interval = torch.zeros((ch_dim, samples))
-        new_waveform = torch.concat(
-            [audio1.waveform, interval, audio2.waveform], dim=-1
-        )
-        return (AudioData(new_waveform, audio1.sample_rate),)
+        audio2 = {
+            "waveform": view2.detach().clone(),
+            "sample_rate": audio["sample_rate"],
+        }
+        return (audio1, audio2)
 
 
 class JoinAudio:
@@ -241,14 +236,20 @@ class JoinAudio:
     def join_audio(self, audios: list[AudioData], silent_interval: float):
         if len(audios) == 0:
             raise ValueError("Audios size is zero.")
-        if not all([audio.sample_rate == audios[0].sample_rate for audio in audios]):
-            raise ValueError("Sample rates must be the same.")
-        if not all([audio.is_stereo() == audios[0].is_stereo() for audio in audios]):
-            raise ValueError("All auido must be either stereo or monoral.")
+        if not all(
+            [audio["sample_rate"] == audios[0]["sample_rate"] for audio in audios]
+        ):
+            raise ValueError("sample_rate must be the same.")
+        if not all(
+            [
+                audio["waveform"].size(1) == audios[0]["waveform"].size(1)
+                for audio in audios
+            ]
+        ):
+            raise ValueError("All audio must be either stereo or monaural.")
 
-        samples = int(silent_interval * audios[0].sample_rate)
-        ch_dim = 2 if audios[0].is_stereo() else 1
-        interval = torch.zeros((ch_dim, samples))
+        samples = int(silent_interval * audios[0]["sample_rate"])
+        interval = torch.zeros((audios[0]["waveform"].size(1), samples))
         new_tensors = []
         for audio in audios:
             new_tensors.append(audio)
@@ -257,7 +258,51 @@ class JoinAudio:
         new_tensors.pop()
 
         new_waveforms = torch.concat(new_tensors, dim=-1)
-        return (AudioData(new_waveforms, audios[0].sample_rate),)
+        new_audio = {"waveform": new_waveforms, "sample_rate": audios[0]["sample_rate"]}
+        return (new_audio,)
+
+
+class ConcatAudio:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "audio1": ("AUDIO",),
+                "audio2": ("AUDIO",),
+                "silent_interval": ("FLOAT", {"default": 0.0, "step": 0.001}),
+            }
+        }
+
+    CATEGORY = NODE_CATEGORY
+
+    RETURN_TYPES = ("AUDIO",)
+    RETURN_NAMES = ("audio",)
+    FUNCTION = "concat_audio"
+
+    def concat_audio(
+        self, audio1: AudioData, audio2: AudioData, silent_interval: float
+    ):
+        if audio1["sample_rate"] != audio2["sample_rate"]:
+            raise ValueError(
+                f"sample_rate is different.\naudio1: {0}\naudio2: {1}".format(
+                    audio1["sample_rate"], audio2["sample_rate"]
+                )
+            )
+
+        audio1_ch = "stereo" if audio1["waveform"].size(1) > 1 else "monaural"
+        audio2_ch = "stereo" if audio2["waveform"].size(1) > 1 else "monaural"
+        if not audio1_ch == audio2_ch:
+            raise ValueError(f"naudio1 is {audio1_ch} but audio2 is {audio2_ch}")
+
+        samples = int(silent_interval * audio1["sample_rate"])
+        interval = torch.zeros(
+            (audio1["waveform"].size(0), audio1["waveform"].size(1), samples)
+        )
+        new_waveform = torch.concat(
+            [audio1["waveform"], interval, audio2["waveform"]], dim=-1
+        )
+        new_audio = {"waveform": new_waveform, "sample_rate": audio1["sample_rate"]}
+        return (new_audio,)
 
 
 class ResampleAudio:
@@ -309,14 +354,15 @@ class ResampleAudio:
         beta=None,
     ):
         transform = torchaudio.transforms.Resample(
-            orig_freq=audio.sample_rate,
+            orig_freq=audio["sample_rate"],
             new_freq=new_freq,
             resampling_method=resampling_method,
             lowpass_filter_width=lowpass_filter_width,
             rolloff=rolloff,
             beta=beta,
         )
-        return (AudioData(transform(audio.waveform), new_freq),)
+        new_audio = {"waveform": transform(audio["waveform"]), "sample_rate": new_freq}
+        return (new_audio,)
 
 
 NODE_CLASS_MAPPINGS = {

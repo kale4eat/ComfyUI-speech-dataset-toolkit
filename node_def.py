@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any, Dict
 
 import torch
 
@@ -6,24 +7,11 @@ import torch
 
 BASE_NODE_CATEGORY = "speech-dataset-toolkit"
 
+# Type
+
+AudioData = Dict[str, Any]
 
 # Data
-
-
-@dataclass(frozen=True)
-class AudioData:
-    """
-    audio data mainly handled in this extension
-    RETURN_TYPES = ("AUDIO", )
-    """
-
-    waveform: torch.Tensor
-
-    sample_rate: int
-
-    def is_stereo(self):
-        return self.waveform.size(0) > 1
-
 
 @dataclass(frozen=True)
 class SpectrogramData:

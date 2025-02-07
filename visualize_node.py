@@ -14,8 +14,12 @@ NODE_CATEGORY = BASE_NODE_CATEGORY + "/visualize"
 
 # PIL to Tensor
 # refer: https://github.com/a1lazydog/ComfyUI-AudioScheduler/blob/main/nodes.py
-def pil2tensor(image):
-    return torch.from_numpy(np.array(image).astype(np.float32) / 255.0).unsqueeze(0)
+def pil2tensor(images):
+    tensors = [
+        torch.from_numpy(np.array(image).astype(np.float32) / 255.0).unsqueeze(0)
+        for image in images
+    ]
+    return torch.concat(tensors, dim=0)
 
 
 class PlotWaveForm:
@@ -36,32 +40,35 @@ class PlotWaveForm:
 
     def plot_waveform(self, audio: AudioData, title: str):
         # refer: https://pytorch.org/tutorials/beginner/audio_preprocessing_tutorial.html
-        waveform = audio.waveform.numpy()
+        waveform = audio["waveform"].numpy()
 
-        num_channels, num_frames = waveform.shape
-        time_axis = torch.arange(0, num_frames) / audio.sample_rate
+        num_batch, num_channels, num_frames = waveform.shape
+        images = []
+        for b in range(num_batch):
+            time_axis = torch.arange(0, num_frames) / audio["sample_rate"]
 
-        figure, axes = plt.subplots(num_channels, 1)
-        if num_channels == 1:
-            axes = [axes]
-        for c in range(num_channels):
-            axes[c].plot(time_axis, waveform[c], linewidth=1)
-            axes[c].grid(True)
-            if num_channels > 1:
-                axes[c].set_ylabel(f"Channel {c+1}")
-        figure.suptitle(title)
+            figure, axes = plt.subplots(num_channels, 1)
+            if num_channels == 1:
+                axes = [axes]
+            for c in range(num_channels):
+                axes[c].plot(time_axis, waveform[b][c], linewidth=1)
+                axes[c].grid(True)
+                if num_channels > 1:
+                    axes[c].set_ylabel(f"Channel {c + 1}")
+            figure.suptitle(title)
 
-        # Create an in-memory buffer to store the image
-        buffer = io.BytesIO()
+            # Create an in-memory buffer to store the image
+            buffer = io.BytesIO()
 
-        # Save the plot to the in-memory buffer as a PNG
-        plt.savefig(buffer, format="png")
-        buffer.seek(0)
+            # Save the plot to the in-memory buffer as a PNG
+            plt.savefig(buffer, format="png")
+            buffer.seek(0)
 
-        # Create a Pillow Image object
-        image = Image.open(buffer)
+            # Create a Pillow Image object
+            image = Image.open(buffer)
+            images.append(image)
 
-        return (pil2tensor(image),)
+        return (pil2tensor(images),)
 
 
 class PlotSpecgram:
@@ -82,29 +89,32 @@ class PlotSpecgram:
 
     def plot_specgram(self, audio: AudioData, title: str):
         # refer: https://pytorch.org/tutorials/beginner/audio_preprocessing_tutorial.html
-        waveform = audio.waveform.numpy()
+        waveform = audio["waveform"].numpy()
 
-        num_channels, num_frames = waveform.shape
-        time_axis = torch.arange(0, num_frames) / audio.sample_rate
+        num_batch, num_channels, _ = waveform.shape
+        # not used in the tutorial
+        # time_axis = torch.arange(0, num_frames) / audio["sample_rate"]
+        images = []
+        for b in range(num_batch):
+            figure, axes = plt.subplots(num_channels, 1)
+            if num_channels == 1:
+                axes = [axes]
+            for c in range(num_channels):
+                axes[c].specgram(waveform[b][c], Fs=audio["sample_rate"])
+            figure.suptitle(title)
 
-        figure, axes = plt.subplots(num_channels, 1)
-        if num_channels == 1:
-            axes = [axes]
-        for c in range(num_channels):
-            axes[c].specgram(waveform[c], Fs=audio.sample_rate)
-        figure.suptitle(title)
+            # Create an in-memory buffer to store the image
+            buffer = io.BytesIO()
 
-        # Create an in-memory buffer to store the image
-        buffer = io.BytesIO()
+            # Save the plot to the in-memory buffer as a PNG
+            plt.savefig(buffer, format="png")
+            buffer.seek(0)
 
-        # Save the plot to the in-memory buffer as a PNG
-        plt.savefig(buffer, format="png")
-        buffer.seek(0)
+            # Create a Pillow Image object
+            image = Image.open(buffer)
+            images.append(image)
 
-        # Create a Pillow Image object
-        image = Image.open(buffer)
-
-        return (pil2tensor(image),)
+        return (pil2tensor(images),)
 
 
 class PlotSpectrogram:
@@ -126,26 +136,34 @@ class PlotSpectrogram:
 
     def plot_spectrogram(self, spec: SpectrogramData, title: str, ylabel: str):
         # refer: https://pytorch.org/tutorials/beginner/audio_preprocessing_tutorial.html
-        fig, axs = plt.subplots(1, 1)
-        axs.set_title(title)
-        axs.set_ylabel(ylabel)
-        axs.set_xlabel("frame")
-        im = axs.imshow(
-            librosa.power_to_db(spec.waveform[0].numpy()), origin="lower", aspect="auto"
-        )
-        fig.colorbar(im, ax=axs)
 
-        # Create an in-memory buffer to store the image
-        buffer = io.BytesIO()
+        num_batch, _, _ = spec.waveform.shape
 
-        # Save the plot to the in-memory buffer as a PNG
-        plt.savefig(buffer, format="png")
-        buffer.seek(0)
+        images = []
+        for b in range(num_batch):
+            fig, axs = plt.subplots(1, 1)
+            axs.set_title(title)
+            axs.set_ylabel(ylabel)
+            axs.set_xlabel("frame")
+            im = axs.imshow(
+                librosa.power_to_db(spec.waveform[b][0].numpy()),
+                origin="lower",
+                aspect="auto",
+            )
+            fig.colorbar(im, ax=axs)
 
-        # Create a Pillow Image object
-        image = Image.open(buffer)
+            # Create an in-memory buffer to store the image
+            buffer = io.BytesIO()
 
-        return (pil2tensor(image),)
+            # Save the plot to the in-memory buffer as a PNG
+            plt.savefig(buffer, format="png")
+            buffer.seek(0)
+
+            # Create a Pillow Image object
+            image = Image.open(buffer)
+            images.append(image)
+
+        return (pil2tensor(images),)
 
 
 class PlotMelFilterBank:
@@ -190,7 +208,7 @@ class PlotMelFilterBank:
         # Create a Pillow Image object
         image = Image.open(buffer)
 
-        return (pil2tensor(image),)
+        return (pil2tensor([image]),)
 
 
 class PlotPitch:
@@ -205,32 +223,42 @@ class PlotPitch:
     FUNCTION = "plot_pitch"
 
     def plot_pitch(self, audio: AudioData):
-        pitch = F.detect_pitch_frequency(audio.waveform, audio.sample_rate)
-        figure, axis = plt.subplots(1, 1)
-        axis.set_title("Pitch Feature")
-        axis.grid(True)
+        pitch = F.detect_pitch_frequency(audio["waveform"], audio["sample_rate"])
 
-        end_time = audio.waveform.shape[1] / audio.sample_rate
-        time_axis = torch.linspace(0, end_time, audio.waveform.shape[1])
-        axis.plot(time_axis, audio.waveform[0], linewidth=1, color="gray", alpha=0.3)
+        num_batch, _, _ = audio["waveform"].shape
+        images = []
 
-        axis2 = axis.twinx()
-        time_axis = torch.linspace(0, end_time, pitch.shape[1])
-        ln2 = axis2.plot(time_axis, pitch[0], linewidth=2, label="Pitch", color="green")
+        for b in range(num_batch):
+            figure, axis = plt.subplots(1, 1)
+            axis.set_title("Pitch Feature")
+            axis.grid(True)
 
-        axis2.legend(loc=0)
+            end_time = audio["waveform"].shape[-1] / audio["sample_rate"]
+            time_axis = torch.linspace(0, end_time, audio["waveform"].shape[-1])
+            axis.plot(
+                time_axis, audio["waveform"][b][0], linewidth=1, color="gray", alpha=0.3
+            )
 
-        # Create an in-memory buffer to store the image
-        buffer = io.BytesIO()
+            axis2 = axis.twinx()
+            time_axis = torch.linspace(0, end_time, pitch.shape[-1])
+            ln2 = axis2.plot(
+                time_axis, pitch[b][0], linewidth=2, label="Pitch", color="green"
+            )
 
-        # Save the plot to the in-memory buffer as a PNG
-        plt.savefig(buffer, format="png")
-        buffer.seek(0)
+            axis2.legend(loc=0)
 
-        # Create a Pillow Image object
-        image = Image.open(buffer)
+            # Create an in-memory buffer to store the image
+            buffer = io.BytesIO()
 
-        return (pil2tensor(image),)
+            # Save the plot to the in-memory buffer as a PNG
+            plt.savefig(buffer, format="png")
+            buffer.seek(0)
+
+            # Create a Pillow Image object
+            image = Image.open(buffer)
+            images.append(image)
+
+        return (pil2tensor(images),)
 
 
 NODE_CLASS_MAPPINGS = {

@@ -7,7 +7,7 @@ import os
 import folder_paths
 
 
-def initiarize():
+def initialize():
     import server
 
     web = server.web
