@@ -4,8 +4,8 @@
 
 Basic audio tools using torchaudio for ComfyUI. It is assumed to assist in the speech dataset creation for ASR, TTS, etc.
 
-> [!WARNING]
-> The AUDIO type in this repository is NOT compatible with the official implementation. Therefore, using nodes from both the official implementation and this repository together will result in an error. Adapting to the official implementation is under active consideration (as of February 1, 2025).
+> [!NOTE]
+> The AUDIO type in this repository is compatible with the official implementation. (as of February 7, 2025).
 
 ## Features
 
