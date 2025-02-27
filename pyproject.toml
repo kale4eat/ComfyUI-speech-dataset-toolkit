@@ -1,0 +1,15 @@
+[project]
+name = "comfyui-speech-dataset-toolkit"
+description = "Basic audio tools using torchaudio for ComfyUI. It is assumed to assist in the speech dataset creation for ASR, TTS, etc."
+version = "1.0.0"
+license = "LICENSE"
+dependencies = ["faster-whisper==1.0.1", "git+https://github.com/kale4eat/demucs@no-torch-install#egg=demucs", "# nue asr", "git+https://github.com/rinnakk/nue-asr", "# nemo-asr", "Cython", "git+https://github.com/reazon-research/ReazonSpeech#subdirectory=pkg/nemo-asr", "# kotoba-whisper", "transformers", "accelerate"]
+
+[project.urls]
+Repository = "https://github.com/kale4eat/ComfyUI-speech-dataset-toolkit"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI-speech-dataset-toolkit"
+Icon = ""
