@@ -9,7 +9,7 @@ from typing import Callable, Optional
 import torch
 import torchaudio
 
-from ..node_def import BASE_NODE_CATEGORY, AudioData
+from ..node_def import BASE_NODE_CATEGORY, MAX_SAFE_INT, AudioData
 from ..waveform_util import is_stereo, stereo_to_monaural
 
 NODE_CATEGORY = BASE_NODE_CATEGORY + "/ai/SileroVAD"
@@ -298,7 +298,7 @@ class SileroVADApply:
                 ),
                 "min_speech_duration_ms": (
                     "INT",
-                    {"default": 250, "min": 0, "max": 2**32},
+                    {"default": 250, "min": 0, "max": MAX_SAFE_INT},
                 ),
                 "max_speech_duration_s": (
                     "FLOAT",
@@ -310,13 +310,13 @@ class SileroVADApply:
                 ),
                 "min_silence_duration_ms": (
                     "INT",
-                    {"default": 100, "min": 0, "max": 2**32},
+                    {"default": 100, "min": 0, "max": MAX_SAFE_INT},
                 ),
                 "window_size_samples": (
                     "INT",
-                    {"default": 512, "min": 0, "max": 2**32},
+                    {"default": 512, "min": 0, "max": MAX_SAFE_INT},
                 ),
-                "speech_pad_ms": ("INT", {"default": 30, "min": 0, "max": 2**32}),
+                "speech_pad_ms": ("INT", {"default": 30, "min": 0, "max": MAX_SAFE_INT}),
             },
         }
 
