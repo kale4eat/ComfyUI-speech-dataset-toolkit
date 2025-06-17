@@ -9,6 +9,7 @@ BASE_NODE_CATEGORY = "speech-dataset-toolkit"
 
 # Value
 
+MAX_SAFE_INT = 2**31 - 1  # 2,147,483,647
 MAX_SAMPLE_RATE = 768000
 
 # Type

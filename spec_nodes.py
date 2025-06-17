@@ -1,6 +1,6 @@
 import torchaudio.transforms as T
 
-from .node_def import BASE_NODE_CATEGORY, AudioData, SpectrogramData
+from .node_def import BASE_NODE_CATEGORY, MAX_SAFE_INT, AudioData, SpectrogramData
 
 NODE_CATEGORY = BASE_NODE_CATEGORY + "/spec"
 
@@ -11,11 +11,11 @@ class Spectrogram:
         return {
             "required": {
                 "audio": ("AUDIO",),
-                "n_fft": ("INT", {"default": 400, "min": 0, "max": 2**32}),
+                "n_fft": ("INT", {"default": 400, "min": 0, "max": MAX_SAFE_INT}),
             },
             "optional": {
-                "win_length": ("INT", {"default": -1, "min": -1, "max": 2**32}),
-                "hop_length": ("INT", {"default": -1, "min": -1, "max": 2**32}),
+                "win_length": ("INT", {"default": -1, "min": -1, "max": MAX_SAFE_INT}),
+                "hop_length": ("INT", {"default": -1, "min": -1, "max": MAX_SAFE_INT}),
             },
         }
 
@@ -45,11 +45,11 @@ class GriffinLim:
         return {
             "required": {
                 "spec": ("SPEC",),
-                "n_fft": ("INT", {"default": 400, "min": 0, "max": 2**32}),
+                "n_fft": ("INT", {"default": 400, "min": 0, "max": MAX_SAFE_INT}),
             },
             "optional": {
-                "win_length": ("INT", {"default": -1, "min": -1, "max": 2**32}),
-                "hop_length": ("INT", {"default": -1, "min": -1, "max": 2**32}),
+                "win_length": ("INT", {"default": -1, "min": -1, "max": MAX_SAFE_INT}),
+                "hop_length": ("INT", {"default": -1, "min": -1, "max": MAX_SAFE_INT}),
             },
         }
 
@@ -79,12 +79,12 @@ class MelSpectrogram:
         return {
             "required": {
                 "audio": ("AUDIO",),
-                "n_fft": ("INT", {"default": 400, "min": 0, "max": 2**32}),
-                "n_mels": ("INT", {"default": 128, "min": 0, "max": 2**32}),
+                "n_fft": ("INT", {"default": 400, "min": 0, "max": MAX_SAFE_INT}),
+                "n_mels": ("INT", {"default": 128, "min": 0, "max": MAX_SAFE_INT}),
             },
             "optional": {
-                "win_length": ("INT", {"default": -1, "min": -1, "max": 2**32}),
-                "hop_length": ("INT", {"default": -1, "min": -1, "max": 2**32}),
+                "win_length": ("INT", {"default": -1, "min": -1, "max": MAX_SAFE_INT}),
+                "hop_length": ("INT", {"default": -1, "min": -1, "max": MAX_SAFE_INT}),
             },
         }
 
@@ -126,13 +126,13 @@ class MFCC:
         return {
             "required": {
                 "audio": ("AUDIO",),
-                "n_mfcc": ("INT", {"default": 40, "min": 0, "max": 2**32}),
-                "n_fft": ("INT", {"default": 1024, "min": 0, "max": 2**32}),
-                "n_mels": ("INT", {"default": 256, "min": 0, "max": 2**32}),
+                "n_mfcc": ("INT", {"default": 40, "min": 0, "max": MAX_SAFE_INT}),
+                "n_fft": ("INT", {"default": 1024, "min": 0, "max": MAX_SAFE_INT}),
+                "n_mels": ("INT", {"default": 256, "min": 0, "max": MAX_SAFE_INT}),
             },
             "optional": {
-                "win_length": ("INT", {"default": -1, "min": -1, "max": 2**32}),
-                "hop_length": ("INT", {"default": -1, "min": -1, "max": 2**32}),
+                "win_length": ("INT", {"default": -1, "min": -1, "max": MAX_SAFE_INT}),
+                "hop_length": ("INT", {"default": -1, "min": -1, "max": MAX_SAFE_INT}),
             },
         }
 
@@ -173,13 +173,13 @@ class LFCC:
         return {
             "required": {
                 "audio": ("AUDIO",),
-                "n_filter": ("INT", {"default": 128, "min": 0, "max": 2**32}),
-                "n_lfcc": ("INT", {"default": 40, "min": 0, "max": 2**32}),
-                "n_fft": ("INT", {"default": 1024, "min": 0, "max": 2**32}),
+                "n_filter": ("INT", {"default": 128, "min": 0, "max": MAX_SAFE_INT}),
+                "n_lfcc": ("INT", {"default": 40, "min": 0, "max": MAX_SAFE_INT}),
+                "n_fft": ("INT", {"default": 1024, "min": 0, "max": MAX_SAFE_INT}),
             },
             "optional": {
-                "win_length": ("INT", {"default": -1, "min": -1, "max": 2**32}),
-                "hop_length": ("INT", {"default": 512, "min": -1, "max": 2**32}),
+                "win_length": ("INT", {"default": -1, "min": -1, "max": MAX_SAFE_INT}),
+                "hop_length": ("INT", {"default": 512, "min": -1, "max": MAX_SAFE_INT}),
             },
         }
 

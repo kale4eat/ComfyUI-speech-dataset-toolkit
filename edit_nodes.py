@@ -4,7 +4,7 @@ import warnings
 import torch
 import torchaudio
 
-from .node_def import BASE_NODE_CATEGORY, MAX_SAMPLE_RATE, AudioData
+from .node_def import BASE_NODE_CATEGORY, MAX_SAFE_INT, MAX_SAMPLE_RATE, AudioData
 
 NODE_CATEGORY = BASE_NODE_CATEGORY + "/edit"
 
@@ -90,8 +90,8 @@ class TrimAudioBySample:
         return {
             "required": {
                 "audio": ("AUDIO",),
-                "start_sample": ("INT", {"default": 0, "min": 0, "max": 2**32}),
-                "end_sample": ("INT", {"default": 0, "min": 0, "max": 2**32}),
+                "start_sample": ("INT", {"default": 0, "min": 0, "max": MAX_SAFE_INT}),
+                "end_sample": ("INT", {"default": 0, "min": 0, "max": MAX_SAFE_INT}),
             }
         }
 
@@ -315,7 +315,7 @@ class ResampleAudio:
                 "resampling_method": (["sinc_interp_hann", "sinc_interp_kaiser"],),
                 "lowpass_filter_width": (
                     "INT",
-                    {"default": 6, "min": 0, "max": 2**32},
+                    {"default": 6, "min": 0, "max": MAX_SAFE_INT},
                 ),
                 "rolloff": (
                     "FLOAT",

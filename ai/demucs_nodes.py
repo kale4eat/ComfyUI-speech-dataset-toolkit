@@ -11,7 +11,7 @@ import demucs.api
 import torch
 from demucs.audio import convert_audio_channels
 
-from ..node_def import BASE_NODE_CATEGORY, AudioData
+from ..node_def import BASE_NODE_CATEGORY, MAX_SAFE_INT, AudioData
 
 NODE_CATEGORY = BASE_NODE_CATEGORY + "/ai/demcus"
 
@@ -23,13 +23,13 @@ class DemucsLoader:
             "required": {
                 "model": (["htdemucs", "htdemucs_ft"],),
                 "device": (["auto", "cpu", "cuda"],),
-                "shifts": ("INT", {"default": 1, "min": 1, "max": 2**32}),
+                "shifts": ("INT", {"default": 1, "min": 1, "max": MAX_SAFE_INT}),
                 "overlap": (
                     "FLOAT",
                     {"default": 0.25, "min": 0, "max": sys.float_info.max},
                 ),
                 "split": ("BOOLEAN", {"default": True}),
-                "segment": ("INT", {"default": -1, "min": -1, "max": 2**32}),
+                "segment": ("INT", {"default": -1, "min": -1, "max": MAX_SAFE_INT}),
                 "jobs": ("INT", {"default": 0, "min": 0, "max": 2**10}),
                 "progress": ("BOOLEAN", {"default": False}),
             },
