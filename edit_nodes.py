@@ -4,7 +4,7 @@ import warnings
 import torch
 import torchaudio
 
-from .node_def import BASE_NODE_CATEGORY, AudioData
+from .node_def import BASE_NODE_CATEGORY, MAX_SAMPLE_RATE, AudioData
 
 NODE_CATEGORY = BASE_NODE_CATEGORY + "/edit"
 
@@ -160,7 +160,7 @@ class MakeSilenceAudio:
         return {
             "required": {
                 "second": ("FLOAT", {"default": 0.0, "step": 0.001}),
-                "sample_rate": ("INT", {"default": 16000, "min": 1}),
+                "sample_rate": ("INT", {"default": 16000, "min": 1, "max": MAX_SAMPLE_RATE}),
                 "channel": (["monaural", "stereo"],),
                 "batch_size": ("INT", {"default": 1, "min": 1, "max": 4096}),
             }
@@ -311,7 +311,7 @@ class ResampleAudio:
         return {
             "required": {
                 "audio": ("AUDIO",),
-                "new_freq": ("INT", {"default": 32000, "min": 1}),
+                "new_freq": ("INT", {"default": 32000, "min": 1, "max": MAX_SAMPLE_RATE}),
                 "resampling_method": (["sinc_interp_hann", "sinc_interp_kaiser"],),
                 "lowpass_filter_width": (
                     "INT",

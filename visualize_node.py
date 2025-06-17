@@ -7,7 +7,7 @@ import torch
 import torchaudio.functional as F
 from PIL import Image
 
-from .node_def import BASE_NODE_CATEGORY, AudioData, SpectrogramData
+from .node_def import BASE_NODE_CATEGORY, MAX_SAMPLE_RATE, AudioData, SpectrogramData
 
 NODE_CATEGORY = BASE_NODE_CATEGORY + "/visualize"
 
@@ -173,7 +173,7 @@ class PlotMelFilterBank:
             "required": {
                 "n_fft": ("INT", {"default": 256, "min": 0, "max": 2**32}),
                 "n_mels": ("INT", {"default": 64, "min": 0, "max": 2**32}),
-                "sample_rate": ("INT", {"default": 32000, "min": 0, "max": 2**32}),
+                "sample_rate": ("INT", {"default": 32000, "min": 0, "max": MAX_SAMPLE_RATE}),
                 "title": ("STRING", {"default": "Filter bank"}),
             },
         }

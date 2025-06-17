@@ -7,6 +7,10 @@ import torch
 
 BASE_NODE_CATEGORY = "speech-dataset-toolkit"
 
+# Value
+
+MAX_SAMPLE_RATE = 768000
+
 # Type
 
 AudioData = Dict[str, Any]
